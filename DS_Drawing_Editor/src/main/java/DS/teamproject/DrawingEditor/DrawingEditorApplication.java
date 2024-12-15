@@ -1,4 +1,4 @@
-package com.example.ds_drawing_editor;
+package DS.teamproject.DrawingEditor;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
