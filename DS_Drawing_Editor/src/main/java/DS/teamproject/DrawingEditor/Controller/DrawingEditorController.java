@@ -36,6 +36,7 @@ public class DrawingEditorController {
     @FXML
     private Button colorButton;
 
+
     @FXML
     private ContextMenu colorContextMenu;
 
@@ -70,7 +71,7 @@ public class DrawingEditorController {
     private List<ShapeRecord> shapes = new ArrayList<>();
     private List<ShapeRecord> selectedShapes = new ArrayList<>();
     private List<ShapeRecord> clipboard = new ArrayList<>();
-
+    private MouseEvent event;
 
 
     @FXML
@@ -87,6 +88,9 @@ public class DrawingEditorController {
 
         // 초기 모드 설정
         resetMode();
+
+        // ColorPicker 이벤트 핸들러 설정
+        colorPicker.setOnAction(event -> handleColorChange());
 
         // 도형 선택 확인 메세지 띄우게
         for (MenuItem item : shapeContextMenu.getItems()) {
@@ -138,9 +142,7 @@ public class DrawingEditorController {
     }
 
 
-
     //select 컨트롤러
-
     private double dragStartX, dragStartY;
 
     private void handleCanvasClick(MouseEvent event) {
@@ -363,18 +365,16 @@ public class DrawingEditorController {
     private void finalizeShape(MouseEvent event) {
         if (selectedShape == null) return;
 
-        // 끝점 보정: 캔버스 범위를 벗어나지 않도록 조정
         double endX = Math.max(2, Math.min(event.getX(), drawingCanvas.getWidth() - 2));
         double endY = Math.max(2, Math.min(event.getY(), drawingCanvas.getHeight() - 2));
 
-        gc.setStroke(Color.BLACK);
+        gc.setStroke(currentColor);
         gc.setLineWidth(2);
 
         switch (selectedShape) {
             case "➖ Line":
-                // 선은 보정 없이 원래대로 그리되, 끝점만 캔버스 내로 보정
                 gc.strokeLine(startX, startY, endX, endY);
-                shapes.add(new ShapeRecord(selectedShape, startX, startY, endX, endY));
+                shapes.add(new ShapeRecord(selectedShape, startX, startY, endX, endY, currentColor));
                 break;
             case "⭕ Circle":
                 double startXCorrected = Math.min(startX, endX);
@@ -383,7 +383,7 @@ public class DrawingEditorController {
                 double height = endY - startYCorrected;
                 double size = Math.min(width, height);
                 gc.strokeOval(startXCorrected, startYCorrected, size, size);
-                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, startXCorrected + size, startYCorrected + size));
+                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, startXCorrected + size, startYCorrected + size, currentColor));
                 break;
             case "⏹ Rectangle":
                 startXCorrected = Math.min(startX, endX);
@@ -391,7 +391,7 @@ public class DrawingEditorController {
                 double rectWidth = endX - startXCorrected;
                 double rectHeight = endY - startYCorrected;
                 gc.strokeRect(startXCorrected, startYCorrected, rectWidth, rectHeight);
-                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, endX, endY));
+                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, endX, endY, currentColor));
                 break;
         }
     }
@@ -448,14 +448,7 @@ public class DrawingEditorController {
         }
     }
 
-    // color 컨트롤러
-    // 선택된 도형의 색상 적용
-    @FXML
-    private void showColorContextMenu(MouseEvent event) {
-        if (event.getButton().equals(MouseButton.PRIMARY)) {
-            colorContextMenu.show(colorButton, event.getScreenX(), event.getScreenY());
-        }
-    }
+
 
     // move 컨트롤러
     @FXML
@@ -583,6 +576,33 @@ public class DrawingEditorController {
             redrawCanvas();
         });
     }
+
+    //Color controller
+    private void handleColorChange() {
+        Color selectedColor = colorPicker.getValue();
+
+        if (!selectedShapes.isEmpty()) {
+            // 선택된 모든 도형의 색상 변경
+            for (ShapeRecord shape : selectedShapes) {
+                shape.color = selectedColor;
+            }
+            redrawCanvas();
+        } else {
+            // 선택된 도형이 없으면 다음 그릴 도형의 색상 변경
+            currentColor = selectedColor;
+        }
+    }
+
+
+    @FXML
+    private void showColorContextMenu(MouseEvent event) {
+        if (event.getButton().equals(MouseButton.PRIMARY)) {
+            colorContextMenu.show(colorButton, event.getScreenX(), event.getScreenY());
+        }
+    }
+
+
+
 
 }
 
