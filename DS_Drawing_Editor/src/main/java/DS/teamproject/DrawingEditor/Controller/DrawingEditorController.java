@@ -423,23 +423,31 @@ public class DrawingEditorController {
     }
 
     private static class ShapeRecord {
-        String type;
-        double startX, startY, endX, endY;
-        Color color;
+        String type;       // 도형의 타입 ("Line", "Circle", "Rectangle" 등)
+        double startX;     // 시작 X 좌표
+        double startY;     // 시작 Y 좌표
+        double endX;       // 끝 X 좌표
+        double endY;       // 끝 Y 좌표
+        Color color;       // 도형의 색상
 
-        // 기본 생성자 (Color 포함)
+        // 기본 생성자 (색상을 전달하지 않는 경우)
+        ShapeRecord(String type, double startX, double startY, double endX, double endY) {
+            this.type = type;
+            this.startX = startX;
+            this.startY = startY;
+            this.endX = endX;
+            this.endY = endY;
+            this.color = Color.BLACK; // 기본 색상은 검정색
+        }
+
+        // 색상을 포함하는 생성자
         ShapeRecord(String type, double startX, double startY, double endX, double endY, Color color) {
             this.type = type;
             this.startX = startX;
             this.startY = startY;
             this.endX = endX;
             this.endY = endY;
-            this.color = color != null ? color : Color.BLACK; // null이면 기본 색상은 BLACK
-        }
-
-        // Color를 제외한 기존 생성자 (기본 색상 BLACK 적용)
-        ShapeRecord(String type, double startX, double startY, double endX, double endY) {
-            this(type, startX, startY, endX, endY, Color.BLACK);
+            this.color = (color != null) ? color : Color.BLACK; // null인 경우 기본 색상으로 설정
         }
 
         // 복사 생성자
@@ -460,53 +468,50 @@ public class DrawingEditorController {
     // move 컨트롤러
     @FXML
     private void handleMoveButtonClick(ActionEvent event) {
-        resetMode(); // 기존 이벤트 핸들러 초기화
-        currentMode = "Move";
-        System.out.println("Move mode activated. Select and drag shapes to move.");
+        if (selectedShapes.isEmpty()) {
+            System.out.println("No shapes selected to move.");
+            return;
+        }
 
-        // 마우스 이벤트 핸들러 설정
+        resetMode();
+        currentMode = "Move";
+        System.out.println("Move mode activated. Drag shapes to move.");
+
         drawingCanvas.setOnMousePressed(this::startMove);
         drawingCanvas.setOnMouseDragged(this::performMove);
-        drawingCanvas.setOnMouseReleased(this::endMove);
+        drawingCanvas.setOnMouseReleased(this::endMoveIfClickedOutside);
     }
 
-    private void endMove(MouseEvent event) {
-        if (Math.abs(event.getX() - dragStartX) < 5 && Math.abs(event.getY() - dragStartY) < 5) {
-            // 드래그가 아닌 클릭만 감지 → 빈 공간 클릭 시 선택 해제
+    private void endMoveIfClickedOutside(MouseEvent event) {
+        // 빈 공간 클릭시 해제
+        if (!isPointInsideSelectedShapes(event.getX(), event.getY())) {
             clearSelection();
         }
+    }
+
+    private boolean isPointInsideSelectedShapes(double x, double y) {
+        for (ShapeRecord shape : selectedShapes) {
+            if (x >= shape.startX && x <= shape.endX && y >= shape.startY && y <= shape.endY) {
+                return true; // 선택된 도형 내부에 있음
+            }
+        }
+        return false; // 선택된 도형 외부
     }
 
     private void clearSelection() {
         selectedShapes.clear(); // 선택된 도형 리스트 비우기
         currentMode = null;     // 이동 모드 해제
-        System.out.println("Selection cleared. Move mode exited.");
         redrawCanvas();         // 화면 다시 그리기 (점선 제거)
     }
 
     private void startMove(MouseEvent event) {
-        // 클릭한 위치에 도형이 있는지 확인
-        if (selectedShapes.isEmpty()) {
-            for (int i = shapes.size() - 1; i >= 0; i--) {
-                ShapeRecord shape = shapes.get(i);
-                if (isPointInsideShape(event.getX(), event.getY(), shape)) {
-                    selectedShapes.clear(); // 기존 선택 해제
-                    selectedShapes.add(shape); // 단일 도형 선택
-                    System.out.println("Single shape selected: " + shape.type);
-                    break;
-                }
-            }
-        } else {
-            System.out.println("Multiple shapes selected for movement.");
-        }
+        if (selectedShapes.isEmpty()) return;
 
         // 드래그 시작점 저장
         dragStartX = event.getX();
         dragStartY = event.getY();
 
-        redrawCanvas(); // 선택된 도형 강조
     }
-
 
     private void performMove(MouseEvent event) {
         if (selectedShapes.isEmpty()) return;
@@ -515,7 +520,20 @@ public class DrawingEditorController {
         double deltaX = event.getX() - dragStartX;
         double deltaY = event.getY() - dragStartY;
 
-        // 선택된 모든 도형 이동
+        // 캔버스 경계 확인
+        for (ShapeRecord shape : selectedShapes) {
+            double newStartX = shape.startX + deltaX;
+            double newStartY = shape.startY + deltaY;
+            double newEndX = shape.endX + deltaX;
+            double newEndY = shape.endY + deltaY;
+
+            // 캔버스를 벗어나면 이동 중단
+            if (newStartX < 0 || newStartY < 0 || newEndX > drawingCanvas.getWidth() || newEndY > drawingCanvas.getHeight()) {
+                return;
+            }
+        }
+
+        // 경계 확인이 통과되면 모든 도형 이동
         for (ShapeRecord shape : selectedShapes) {
             shape.startX += deltaX;
             shape.startY += deltaY;
@@ -532,58 +550,93 @@ public class DrawingEditorController {
 
     @FXML
     private void handleCopyButtonClick(ActionEvent event) {
-        resetMode();
-        currentMode = "Copy";
-        System.out.println("Copy mode activated. Click on a shape to copy it to the clipboard.");
+        if (selectedShapes.isEmpty()) {
+            System.out.println("No shapes selected to copy.");
+            return;
+        }
 
-        drawingCanvas.setOnMousePressed(event1 -> {
-            for (int i = shapes.size() - 1; i >= 0; i--) {
-                ShapeRecord shape = shapes.get(i);
-                if (isPointInsideShape(event1.getX(), event1.getY(), shape)) {
-                    clipboard.clear();
-                    clipboard.add(new ShapeRecord(shape)); // 복사 생성자 사용
-                    System.out.println("Shape copied to clipboard: " + shape.type);
-                    break;
-                }
-            }
-        });
+        clipboard.clear();
+
+        // 기준 좌표 (선택된 도형들의 최소 x, y 좌표)
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
+
+        for (ShapeRecord shape : selectedShapes) {
+            minX = Math.min(minX, shape.startX);
+            minY = Math.min(minY, shape.startY);
+        }
+
+        // 도형들의 상대 좌표를 계산하여 클립보드에 저장
+        for (ShapeRecord shape : selectedShapes) {
+            double relativeStartX = shape.startX - minX;
+            double relativeStartY = shape.startY - minY;
+            double relativeEndX = shape.endX - minX;
+            double relativeEndY = shape.endY - minY;
+
+            clipboard.add(new ShapeRecord(shape.type, relativeStartX, relativeStartY, relativeEndX, relativeEndY, shape.color));
+        }
+
+        System.out.println(clipboard.size() + " shape(s) copied to clipboard with relative positions.");
     }
 
 
     @FXML
     private void handlePasteButtonClick(ActionEvent event) {
+        if (clipboard.isEmpty()) {
+            System.out.println("Clipboard is empty. Nothing to paste.");
+            return;
+        }
+
         resetMode();
         currentMode = "Paste";
-        System.out.println("Paste mode activated. Click on the canvas to place the shape.");
+        System.out.println("Paste mode activated. Click on the canvas to place shapes.");
 
-        drawingCanvas.setOnMousePressed(event1 -> {
-            if (clipboard.isEmpty()) {
-                System.out.println("Clipboard is empty. Nothing to paste.");
-                return;
-            }
-
-            ShapeRecord originalShape = clipboard.get(0); // 클립보드에 저장된 첫 번째 도형
-            double offsetX = event1.getX();
-            double offsetY = event1.getY();
-            double width = originalShape.endX - originalShape.startX;
-            double height = originalShape.endY - originalShape.startY;
-
-            // 새 위치에 도형 생성
-            ShapeRecord newShape = new ShapeRecord(
-                    originalShape.type,
-                    offsetX,
-                    offsetY,
-                    offsetX + width,
-                    offsetY + height,
-                    originalShape.color
-            );
-
-            shapes.add(newShape); // 도형 리스트에 추가
-            System.out.println("Shape pasted at: (" + offsetX + ", " + offsetY + ")");
-            redrawCanvas();
-        });
+        drawingCanvas.setOnMousePressed(this::performPaste);
     }
 
+    private void performPaste(MouseEvent event) {
+        double pasteStartX = event.getX();
+        double pasteStartY = event.getY();
+
+        List<ShapeRecord> newShapes = new ArrayList<>();
+
+        // 클립보드의 도형들을 클릭한 위치에 상대적으로 붙여넣기
+        for (ShapeRecord shape : clipboard) {
+            double newStartX = pasteStartX + shape.startX;
+            double newStartY = pasteStartY + shape.startY;
+            double newEndX = pasteStartX + shape.endX;
+            double newEndY = pasteStartY + shape.endY;
+
+            // 캔버스 경계를 벗어나지 않도록 보정
+            if (newStartX < 0) {
+                double diff = -newStartX;
+                newStartX += diff;
+                newEndX += diff;
+            }
+            if (newStartY < 0) {
+                double diff = -newStartY;
+                newStartY += diff;
+                newEndY += diff;
+            }
+            if (newEndX > drawingCanvas.getWidth()) {
+                double diff = newEndX - drawingCanvas.getWidth();
+                newStartX -= diff;
+                newEndX -= diff;
+            }
+            if (newEndY > drawingCanvas.getHeight()) {
+                double diff = newEndY - drawingCanvas.getHeight();
+                newStartY -= diff;
+                newEndY -= diff;
+            }
+
+            // 새로운 도형 생성 및 추가
+            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color));
+        }
+
+        shapes.addAll(newShapes);
+        redrawCanvas();
+        System.out.println(newShapes.size() + " shape(s) pasted at (" + pasteStartX + ", " + pasteStartY + ").");
+    }
 }
 
 
