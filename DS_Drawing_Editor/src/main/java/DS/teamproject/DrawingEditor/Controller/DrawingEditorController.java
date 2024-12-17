@@ -150,6 +150,8 @@ public class DrawingEditorController {
         currentMode = null;
     }
 
+
+    //------------------------------select 기능----------------------------
     //Select r구현 컨트롤러
     @FXML
     private void handleSelectButtonClick(MouseEvent event) {
@@ -234,19 +236,6 @@ public class DrawingEditorController {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     // Select 모드: 드래그로 다중 선택
     private double finalStartX, finalStartY, finalEndX, finalEndY;
 
@@ -284,33 +273,18 @@ public class DrawingEditorController {
         gc.strokeRect(finalStartX, finalStartY, finalEndX - finalStartX, finalEndY - finalStartY);
         gc.setLineDashes(null);
 
-        // 드래그 영역 내에 완전히 포함된 도형 감지
-        selectedShapes.clear();
+        // 드래그 영역 내에 완전히 포함된 도형 선택
+        List<ShapeRecord> tempSelectedShapes = new ArrayList<>();
         for (ShapeRecord shape : shapes) {
             if (isShapeFullyInsideBounds(shape, finalStartX, finalStartY, finalEndX, finalEndY)) {
-                selectedShapes.add(shape);
+                tempSelectedShapes.add(shape);
             }
         }
 
-        highlightShapes(); // 드래그 중에도 선택된 도형 강조
-    }
+        selectedShapes.clear();
+        selectedShapes.addAll(tempSelectedShapes);
 
-    private boolean isShapeFullyInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
-        switch (shape.type) {
-            case "➖ Line":
-                // 선의 시작점과 끝점이 모두 드래그 영역 안에 있어야 함
-                return isPointInsideRectangle(shape.startX, shape.startY, startX, startY, endX, endY) &&
-                        isPointInsideRectangle(shape.endX, shape.endY, startX, startY, endX, endY);
-
-            case "⭕ Circle":
-            case "⏹ Rectangle":
-                // 사각형 또는 원의 경계가 드래그 영역에 완전히 포함되어야 함
-                return shape.startX >= startX && shape.endX <= endX &&
-                        shape.startY >= startY && shape.endY <= endY;
-
-            default:
-                return false;
-        }
+        highlightShapes(); // 드래그 중 선택된 도형 강조
     }
 
     private boolean isPointInsideRectangle(double x, double y, double startX, double startY, double endX, double endY) {
@@ -319,9 +293,14 @@ public class DrawingEditorController {
 
     private void handleCanvasRelease(MouseEvent event) {
         if ("Select".equals(currentMode)) {
-            // 드래그 종료 시 선택된 도형 유지
-            redrawCanvas();
-            highlightShapes();
+
+            for(ShapeRecord shape : selectedShapes){
+                redrawCanvas();
+                highlightShapes();
+
+            }
+            // 드래그 종료 후 선택된 도형을 확정하고 시각화
+
         }
     }
 
@@ -344,23 +323,36 @@ public class DrawingEditorController {
                 bounds[3] = Math.max(bounds[3], shape.endY);   // maxY
             } else {
                 // 개별 도형 강조
+                final double padding = 5.0; // 도형 외곽선에 패딩 추가
+
                 switch (shape.type) {
                     case "➖ Line":
-                        // 선분을 따라 점선 강조
-                        gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
+                        // 선분을 따라 점선 강조 (패딩 추가)
+                        double dx = shape.endX - shape.startX;
+                        double dy = shape.endY - shape.startY;
+                        double length = Math.hypot(dx, dy);
+                        double padX = padding * (dx / length);
+                        double padY = padding * (dy / length);
+
+                        gc.strokeLine(shape.startX - padX, shape.startY - padY, shape.endX + padX, shape.endY + padY);
                         break;
 
                     case "⭕ Circle":
+                        // 원을 감싸는 네모에 패딩 추가
                         double centerX = shape.startX;
                         double centerY = shape.startY;
                         double width = shape.endX - shape.startX;
                         double height = shape.endY - shape.startY;
                         double size = Math.min(width, height);
-                        gc.strokeOval(centerX, centerY, size, size);
+
+                        gc.strokeRect(centerX - padding, centerY - padding, size + 2 * padding, size + 2 * padding);
                         break;
 
                     case "⏹ Rectangle":
-                        gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
+                        // 사각형 외곽선에 패딩 추가
+                        gc.strokeRect(shape.startX - padding, shape.startY - padding,
+                                (shape.endX - shape.startX) + 2 * padding,
+                                (shape.endY - shape.startY) + 2 * padding);
                         break;
                 }
             }
@@ -368,13 +360,12 @@ public class DrawingEditorController {
 
         // 그룹 외곽선 그리기
         for (double[] bounds : groupBounds.values()) {
-            double x = bounds[0];
-            double y = bounds[1];
-            double width = bounds[2] - bounds[0];
-            double height = bounds[3] - bounds[1];
+            double x = bounds[0] - 5; // 그룹 외곽선에 패딩 추가
+            double y = bounds[1] - 5;
+            double width = (bounds[2] - bounds[0]) + 10;
+            double height = (bounds[3] - bounds[1]) + 10;
             gc.strokeRect(x, y, width, height);
         }
-
 
         gc.setLineDashes(null);
         gc.setStroke(Color.BLACK);
@@ -399,10 +390,20 @@ public class DrawingEditorController {
         }
     }
 
-    private boolean isShapeInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
-        // 도형의 좌표가 드래그 영역 안에 있는지 확인
-        return isPointInBounds(shape.startX, shape.startY, startX, startY, endX, endY) &&
-                isPointInBounds(shape.endX, shape.endY, startX, startY, endX, endY);
+    private boolean isShapeFullyInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
+        switch (shape.type) {
+            case "➖ Line":
+                return isPointInsideRectangle(shape.startX, shape.startY, startX, startY, endX, endY) &&
+                        isPointInsideRectangle(shape.endX, shape.endY, startX, startY, endX, endY);
+
+            case "⭕ Circle":
+            case "⏹ Rectangle":
+                return shape.startX >= startX && shape.endX <= endX &&
+                        shape.startY >= startY && shape.endY <= endY;
+
+            default:
+                return false;
+        }
     }
 
     // 점이 선 근처에 있는지 확인
@@ -416,60 +417,7 @@ public class DrawingEditorController {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// ------------------------------shape 기능-------------------------
     //Shape 컨트롤러
     @FXML
     private void showShapeMenu(MouseEvent event) {
@@ -613,6 +561,7 @@ public class DrawingEditorController {
     }
 
 
+    //-------------------------group 구현---------------------
     private int nextGroupId = 1; // 그룹 ID 생성용 변수
     @FXML
     private void handleGroupButtonClick(MouseEvent event) {
@@ -654,7 +603,7 @@ public class DrawingEditorController {
     }
 
 
-
+//-------------------------------------move 기능------------------
     // move 컨트롤러
     @FXML
     private void handleMoveButtonClick(ActionEvent event) {
@@ -782,6 +731,9 @@ public class DrawingEditorController {
         });
     }
 
+
+
+///--------------------------------------color 기능 ---------------------------------
     //Color controller
     private void handleColorChange() {
         Color selectedColor = colorPicker.getValue();
@@ -806,7 +758,7 @@ public class DrawingEditorController {
         }
     }
 
-    // -------저장 기능----------
+    // ----------------------------------------저장 기능---------------------------------------
     // Save (저장) 기능
     @FXML
     private void handleSave() {
