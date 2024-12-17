@@ -524,7 +524,7 @@ public class DrawingEditorController {
         gc.clearRect(0, 0, drawingCanvas.getWidth(), drawingCanvas.getHeight());
 
         for (ShapeRecord shape : shapes) {
-            gc.setStroke(shape.color != null ? shape.color : Color.BLACK);
+            gc.setStroke(shape.getColor() != null ? shape.getColor() : Color.BLACK);
             gc.setLineWidth(2);
 
             switch (shape.type) {
@@ -549,7 +549,7 @@ public class DrawingEditorController {
     private static class ShapeRecord {
         String type;       // 도형의 타입
         double startX, startY, endX, endY;  // 도형의 좌표
-        Color color;       // 도형의 색상
+        String colorHex;   // 색상을 Hex 문자열로 저장
         int groupId = -1;  // 그룹 ID (-1: 그룹화되지 않음)
 
         // 기본 생성자 (Color 포함)
@@ -559,12 +559,30 @@ public class DrawingEditorController {
             this.startY = startY;
             this.endX = endX;
             this.endY = endY;
-            this.color = color != null ? color : Color.BLACK; // null이면 기본 색상은 BLACK
+            this.colorHex = colorToHex(color != null ? color : Color.BLACK);
         }
 
         // 복사 생성자
         ShapeRecord(ShapeRecord other) {
-            this(other.type, other.startX, other.startY, other.endX, other.endY, other.color);
+            this(other.type, other.startX, other.startY, other.endX, other.endY, other.getColor());
+            this.groupId = other.groupId;
+        }
+
+        // Hex 문자열을 Color 객체로 변환
+        public Color getColor() {
+            return colorHex != null ? Color.web(colorHex) : Color.BLACK;
+        }
+
+        public void setColor(Color color) {
+            this.colorHex = colorToHex(color);
+        }
+
+        // Color 객체를 Hex 문자열로 변환
+        private String colorToHex(Color color) {
+            return String.format("#%02X%02X%02X",
+                    (int) (color.getRed() * 255),
+                    (int) (color.getGreen() * 255),
+                    (int) (color.getBlue() * 255));
         }
     }
 
@@ -687,7 +705,7 @@ public class DrawingEditorController {
             double relativeEndX = shape.endX - minX;
             double relativeEndY = shape.endY - minY;
 
-            clipboard.add(new ShapeRecord(shape.type, relativeStartX, relativeStartY, relativeEndX, relativeEndY, shape.color));
+            clipboard.add(new ShapeRecord(shape.type, relativeStartX, relativeStartY, relativeEndX, relativeEndY, shape.getColor()));
         }
 
         System.out.println(clipboard.size() + " shape(s) copied to clipboard with relative positions.");
@@ -747,7 +765,7 @@ public class DrawingEditorController {
             }
 
             // 새로운 도형 생성 및 추가
-            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color));
+            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.getColor()));
         }
 
         shapes.addAll(newShapes);
@@ -812,14 +830,14 @@ public class DrawingEditorController {
     }
 
     private void saveState() {
-        // 현재 상태를 복사하여 undoStack에 저장
         List<ShapeRecord> currentState = new ArrayList<>();
         for (ShapeRecord shape : shapes) {
-            currentState.add(new ShapeRecord(shape)); // 복사본 저장
+            currentState.add(new ShapeRecord(shape));
         }
         undoStack.push(currentState);
-        redoStack.clear(); // 새로운 작업이 발생하면 redoStack 초기화
+        redoStack.clear();
     }
+
 
     @FXML
     private void handleUndo() {
@@ -855,7 +873,7 @@ public class DrawingEditorController {
         if (!selectedShapes.isEmpty()) {
             // 선택된 모든 도형의 색상 변경
             for (ShapeRecord shape : selectedShapes) {
-                shape.color = selectedColor;
+                shape.setColor(selectedColor);
             }
             redrawCanvas();
         } else {
@@ -904,39 +922,52 @@ public class DrawingEditorController {
             gson.toJson(shapes, writer);
             System.out.println("File saved: " + file.getAbsolutePath());
         } catch (IOException e) {
-            System.err.println("Error saving file: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     // Load (불러오기) 기능
     @FXML
     private void handleLoad() {
+        System.out.println("File Load button clicked");
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open File");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON files", "*.json"));
 
         File file = fileChooser.showOpenDialog(primaryStage);
         if (file != null) {
-            loadFromFile(file);
+            System.out.println("Selected file: " + file.getAbsolutePath());
+            loadShapes(file);
             currentFile = file;
+        } else {
+            System.out.println("No file selected");
         }
     }
 
     // 파일을 불러오는 메서드
-    private void loadFromFile(File file) {
+    private void loadShapes(File file) {
         try (Reader reader = new FileReader(file)) {
             Gson gson = new Gson();
             Type shapeListType = new TypeToken<List<ShapeRecord>>() {}.getType();
-            shapes = gson.fromJson(reader, shapeListType);
+            List<ShapeRecord> loadedShapes = gson.fromJson(reader, shapeListType);
+
+            // 불러온 도형을 shapes 리스트에 추가
+            shapes.clear();
+            for (ShapeRecord shape : loadedShapes) {
+                if (shape.colorHex != null) {
+                    shape.setColor(Color.web(shape.colorHex)); // colorHex를 Color로 변환
+                } else {
+                    shape.setColor(Color.BLACK); // 기본 색상으로 BLACK 설정
+                }
+                shapes.add(shape);
+            }
+
             redrawCanvas();
             System.out.println("File loaded: " + file.getAbsolutePath());
         } catch (IOException e) {
-            System.err.println("Error loading file: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-
-    // Stage 설정 메서드 (Main Application에서 호출)
-    public void setPrimaryStage(Stage stage) {
-        this.primaryStage = stage;
-    }
 }
+
