@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.geometry.Side;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -20,11 +19,7 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 
 public class DrawingEditorController {
@@ -294,7 +289,7 @@ public class DrawingEditorController {
         redrawCanvas();
         gc.setStroke(Color.web("#33FF04"));
         gc.setLineWidth(2);
-        gc.setLineDashes(10);
+        gc.setLineDashes(5);
         gc.strokeRect(finalStartX, finalStartY, finalEndX - finalStartX, finalEndY - finalStartY);
         gc.setLineDashes(null);
 
@@ -332,8 +327,9 @@ public class DrawingEditorController {
     private void highlightShapes() {
         gc.setStroke(Color.web("#33FF04")); // 점선 색상
         gc.setLineWidth(2);
-        gc.setLineDashes(10); // 점선 설정
+        gc.setLineDashes(5); // 점선 설정
 
+        final double padding = 5.0;
         Map<Integer, double[]> groupBounds = new HashMap<>();
 
         for (ShapeRecord shape : selectedShapes) {
@@ -349,20 +345,29 @@ public class DrawingEditorController {
                 // 개별 도형 강조
                 switch (shape.type) {
                     case "➖ Line":
-                        // 선분을 따라 점선 강조
-                        gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
+                        double dx = shape.endX - shape.startX;
+                        double dy = shape.endY - shape.startY;
+                        double length = Math.hypot(dx, dy);
+                        double padX = padding * (dx / length);
+                        double padY = padding * (dy / length);
+                        gc.strokeLine(shape.startX - padX, shape.startY - padY, shape.endX + padX, shape.endY + padY);
                         break;
+
                     case "⭕ Circle":
                         double centerX = shape.startX;
                         double centerY = shape.startY;
                         double width = shape.endX - shape.startX;
                         double height = shape.endY - shape.startY;
                         double size = Math.min(width, height);
-                        gc.strokeOval(centerX, centerY, size, size);
+                        gc.strokeRect(centerX - padding, centerY - padding, size + 2 * padding, size + 2 * padding);
                         break;
+
                     case "⏹ Rectangle":
-                        gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
+                        gc.strokeRect(shape.startX - padding, shape.startY - padding,
+                                (shape.endX - shape.startX) + 2 * padding,
+                                (shape.endY - shape.startY) + 2 * padding);
                         break;
+
                 }
             }
         }
@@ -935,5 +940,3 @@ public class DrawingEditorController {
         this.primaryStage = stage;
     }
 }
-
-
