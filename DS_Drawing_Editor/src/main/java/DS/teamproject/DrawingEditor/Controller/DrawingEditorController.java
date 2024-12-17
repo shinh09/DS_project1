@@ -129,47 +129,24 @@ public class DrawingEditorController {
             });
         }
 
-        // 그룹화 메뉴 이벤트 설정
-        if (groupButton != null) {
-            groupButton.setOnMouseClicked(event -> {
-                ContextMenu groupMenu = new ContextMenu();
-                MenuItem groupItem = new MenuItem("Grouping");
-                groupItem.setOnAction(e -> groupSelectedShapes());
-                MenuItem ungroupItem = new MenuItem("Ungrouping");
-                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
-                groupMenu.getItems().addAll(groupItem, ungroupItem);
-                groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+        // 그룹화 메뉴 선택 확인 메세지 띄우게
+        for (MenuItem item : groupContextMenu.getItems()) {
+            item.setOnAction(event -> {
+                selectedGroup = item.getText();
+                System.out.println("Selected Group Type: " + selectedGroup);
             });
         }
 
-        // Undo/Redo 메뉴 선택
-        if (undoRedoButton != null) {
-            undoRedoButton.setOnMouseClicked(event -> {
-                ContextMenu undoRedoMenu = new ContextMenu();
-
-                MenuItem undoItem = new MenuItem("Undo");
-                undoItem.setOnAction(e -> handleUndo());
-
-                MenuItem redoItem = new MenuItem("Redo");
-                redoItem.setOnAction(e -> handleRedo());
-
-                undoRedoMenu.getItems().addAll(undoItem, redoItem);
-                undoRedoMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
+        // Undo/Redo 메뉴 선택 확인 메세지 띄우게
+        for (MenuItem item : redoUndoContextMenu.getItems()) {
+            item.setOnAction(event -> {
+                selectedRedoUndo = item.getText();
+                System.out.println("Selected Undo/Redo menu: " + selectedRedoUndo);
             });
         }
-
 
         // ColorPicker 이벤트 핸들러 설정
         colorPicker.setOnAction(event -> handleColorChange());
-
-        // 도형 선택 확인 메세지 띄우게
-        for (MenuItem item : shapeContextMenu.getItems()) {
-            item.setOnAction(event -> {
-                selectedShape = item.getText();
-                System.out.println("Selected Shape: " + selectedShape);
-            });
-        }
-
 
     }
 
@@ -350,43 +327,27 @@ public class DrawingEditorController {
                 // 그룹 경계 계산
                 groupBounds.putIfAbsent(shape.groupId, new double[]{Double.MAX_VALUE, Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE});
                 double[] bounds = groupBounds.get(shape.groupId);
-
                 bounds[0] = Math.min(bounds[0], shape.startX); // minX
                 bounds[1] = Math.min(bounds[1], shape.startY); // minY
                 bounds[2] = Math.max(bounds[2], shape.endX);   // maxX
                 bounds[3] = Math.max(bounds[3], shape.endY);   // maxY
             } else {
                 // 개별 도형 강조
-                final double padding = 5.0; // 도형 외곽선에 패딩 추가
-
                 switch (shape.type) {
                     case "➖ Line":
-                        // 선분을 따라 점선 강조 (패딩 추가)
-                        double dx = shape.endX - shape.startX;
-                        double dy = shape.endY - shape.startY;
-                        double length = Math.hypot(dx, dy);
-                        double padX = padding * (dx / length);
-                        double padY = padding * (dy / length);
-
-                        gc.strokeLine(shape.startX - padX, shape.startY - padY, shape.endX + padX, shape.endY + padY);
+                        // 선분을 따라 점선 강조
+                        gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
                         break;
-
                     case "⭕ Circle":
-                        // 원을 감싸는 네모에 패딩 추가
                         double centerX = shape.startX;
                         double centerY = shape.startY;
                         double width = shape.endX - shape.startX;
                         double height = shape.endY - shape.startY;
                         double size = Math.min(width, height);
-
-                        gc.strokeRect(centerX - padding, centerY - padding, size + 2 * padding, size + 2 * padding);
+                        gc.strokeOval(centerX, centerY, size, size);
                         break;
-
                     case "⏹ Rectangle":
-                        // 사각형 외곽선에 패딩 추가
-                        gc.strokeRect(shape.startX - padding, shape.startY - padding,
-                                (shape.endX - shape.startX) + 2 * padding,
-                                (shape.endY - shape.startY) + 2 * padding);
+                        gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
                         break;
                 }
             }
@@ -394,22 +355,16 @@ public class DrawingEditorController {
 
         // 그룹 외곽선 그리기
         for (double[] bounds : groupBounds.values()) {
-            double x = bounds[0] - 5; // 그룹 외곽선에 패딩 추가
-            double y = bounds[1] - 5;
-            double width = (bounds[2] - bounds[0]) + 10;
-            double height = (bounds[3] - bounds[1]) + 10;
+            double x = bounds[0];
+            double y = bounds[1];
+            double width = bounds[2] - bounds[0];
+            double height = bounds[3] - bounds[1];
             gc.strokeRect(x, y, width, height);
         }
 
         gc.setLineDashes(null);
         gc.setStroke(Color.BLACK);
     }
-
-    // 점이 드래그 범위 안에 있는지 확인
-    private boolean isPointInBounds(double x, double y, double startX, double startY, double endX, double endY) {
-        return x >= startX && x <= endX && y >= startY && y <= endY;
-    }
-
 
     // 점이 도형 안에 있는지 확인
     private boolean isPointInsideShape(double x, double y, ShapeRecord shape) {
@@ -463,8 +418,6 @@ public class DrawingEditorController {
             shapeContextMenu.show(shapeButton, event.getScreenX(), event.getScreenY());
         }
     }
-
-
 
     private void startDrawing(MouseEvent event) {
         if (selectedShape == null) return;
@@ -635,33 +588,17 @@ public class DrawingEditorController {
     private void clearSelection() {
         selectedShapes.clear(); // 선택된 도형 리스트 비우기
         currentMode = null;     // 이동 모드 해제
-        System.out.println("Selection cleared. Move mode exited.");
         redrawCanvas();         // 화면 다시 그리기 (점선 제거)
     }
 
     private void startMove(MouseEvent event) {
-        // 클릭한 위치에 도형이 있는지 확인
-        if (selectedShapes.isEmpty()) {
-            for (int i = shapes.size() - 1; i >= 0; i--) {
-                ShapeRecord shape = shapes.get(i);
-                if (isPointInsideShape(event.getX(), event.getY(), shape)) {
-                    selectedShapes.clear(); // 기존 선택 해제
-                    selectedShapes.add(shape); // 단일 도형 선택
-                    System.out.println("Single shape selected: " + shape.type);
-                    break;
-                }
-            }
-        } else {
-            System.out.println("Multiple shapes selected for movement.");
-        }
+        if (selectedShapes.isEmpty()) return;
 
         // 드래그 시작점 저장
         dragStartX = event.getX();
         dragStartY = event.getY();
 
-        redrawCanvas(); // 선택된 도형 강조
     }
-
 
     private void performMove(MouseEvent event) {
         if (selectedShapes.isEmpty()) return;
@@ -748,39 +685,46 @@ public class DrawingEditorController {
         currentMode = "Paste";
         System.out.println("Paste mode activated. Click on the canvas to place shapes.");
 
-        // Paste 모드에서만 캔버스 클릭 이벤트 설정
         drawingCanvas.setOnMousePressed(this::performPaste);
     }
 
     private void performPaste(MouseEvent event) {
-        // Paste 모드가 아닌 경우 실행 불가
-        if (!"Paste".equals(currentMode)) {
-            System.out.println("Paste mode is not active. Cannot paste shapes.");
-            return;
-        }
-
         double pasteStartX = event.getX();
         double pasteStartY = event.getY();
 
         List<ShapeRecord> newShapes = new ArrayList<>();
-        Map<Integer, Integer> groupIdMapping = new HashMap<>(); // 원본 그룹 ID -> 새로운 그룹 ID
 
+        // 클립보드의 도형들을 클릭한 위치에 상대적으로 붙여넣기
         for (ShapeRecord shape : clipboard) {
             double newStartX = pasteStartX + shape.startX;
             double newStartY = pasteStartY + shape.startY;
             double newEndX = pasteStartX + shape.endX;
             double newEndY = pasteStartY + shape.endY;
 
-            // 그룹 ID 매핑: 새로운 그룹 ID 생성
-            int newGroupId = -1;
-            if (shape.groupId != -1) {
-                newGroupId = groupIdMapping.computeIfAbsent(shape.groupId, id -> nextGroupId++);
+            // 캔버스 경계를 벗어나지 않도록 보정
+            if (newStartX < 0) {
+                double diff = -newStartX;
+                newStartX += diff;
+                newEndX += diff;
+            }
+            if (newStartY < 0) {
+                double diff = -newStartY;
+                newStartY += diff;
+                newEndY += diff;
+            }
+            if (newEndX > drawingCanvas.getWidth()) {
+                double diff = newEndX - drawingCanvas.getWidth();
+                newStartX -= diff;
+                newEndX -= diff;
+            }
+            if (newEndY > drawingCanvas.getHeight()) {
+                double diff = newEndY - drawingCanvas.getHeight();
+                newStartY -= diff;
+                newEndY -= diff;
             }
 
-            // 새로운 도형 생성 및 그룹 ID 설정
-            ShapeRecord newShape = new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color);
-            newShape.groupId = newGroupId;
-            newShapes.add(newShape);
+            // 새로운 도형 생성 및 추가
+            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color));
         }
 
         shapes.addAll(newShapes);
@@ -791,19 +735,52 @@ public class DrawingEditorController {
 
     //------------------------------group 기능----------------------------
     private int nextGroupId = 1; // 그룹 ID 생성용 변수
+
+    @FXML
+    private void handleGroupButtonClick(MouseEvent event) {
+        // group 모드로 전환
+        resetMode(); // 다른 모드를 초기화
+        currentMode = "Group"; // Group 모드 설정
+        System.out.println("Group mode activated.");
+
+        if (event.getButton() == MouseButton.PRIMARY) { // 왼쪽 클릭 시
+            // ContextMenu가 아직 생성되지 않았다면 초기화
+            if (groupContextMenu == null) {
+                groupContextMenu = new ContextMenu();
+
+                // 그룹화 메뉴 항목
+                MenuItem groupItem = new MenuItem("Grouping");
+                groupItem.setOnAction(e -> groupSelectedShapes());
+
+                // 그룹 해제 메뉴 항목
+                MenuItem ungroupItem = new MenuItem("Ungrouping");
+                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
+
+                // 메뉴 항목 추가
+                groupContextMenu.getItems().addAll(groupItem, ungroupItem);
+            }
+
+            // 이미 메뉴가 표시 중이라면 닫기
+            if (groupContextMenu.isShowing()) {
+                groupContextMenu.hide();
+            } else {
+                // 버튼을 기준으로 메뉴 표시
+                groupContextMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+            }
+        }
+    }
+
     @FXML
     private void groupSelectedShapes() {
         if (selectedShapes.isEmpty()) {
             System.out.println("No shapes selected to group.");
             return;
         }
-
         // 새로운 그룹 ID 부여
         int groupId = nextGroupId++;
         for (ShapeRecord shape : selectedShapes) {
             shape.groupId = groupId;
         }
-
         System.out.println("Grouped " + selectedShapes.size() + " shapes into group " + groupId);
         redrawCanvas();
     }
@@ -814,17 +791,16 @@ public class DrawingEditorController {
             System.out.println("No shapes selected to ungroup.");
             return;
         }
-
         // 선택된 도형들의 그룹 해제
         for (ShapeRecord shape : selectedShapes) {
             shape.groupId = -1; // 그룹 해제
         }
-
         System.out.println("Ungrouped selected shapes.");
         redrawCanvas();
     }
 
 
+    //------------------------------undo/redo 기능----------------------------
     private Stack<List<ShapeRecord>> undoStack = new Stack<>();
     private Stack<List<ShapeRecord>> redoStack = new Stack<>();
 
@@ -836,7 +812,29 @@ public class DrawingEditorController {
         System.out.println("Undo/Redo mode activated.");
 
         if (event.getButton().equals(MouseButton.PRIMARY)) {
-            redoUndoContextMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
+            // ContextMenu가 이미 존재하지 않으면 초기화
+            if (redoUndoContextMenu == null) {
+                redoUndoContextMenu = new ContextMenu();
+
+                // Undo 메뉴 항목
+                MenuItem undoItem = new MenuItem("Undo");
+                undoItem.setOnAction(e -> handleUndo());
+
+                // Redo 메뉴 항목
+                MenuItem redoItem = new MenuItem("Redo");
+                redoItem.setOnAction(e -> handleRedo());
+
+                // 메뉴 항목 추가
+                redoUndoContextMenu.getItems().addAll(undoItem, redoItem);
+            }
+
+            // 이미 메뉴가 표시 중이면 숨기기
+            if (redoUndoContextMenu.isShowing()) {
+                redoUndoContextMenu.hide();
+            } else {
+                // 메뉴 표시
+                redoUndoContextMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
+            }
         }
     }
 
