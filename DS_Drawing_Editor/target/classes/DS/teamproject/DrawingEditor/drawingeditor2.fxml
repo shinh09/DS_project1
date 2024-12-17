@@ -168,7 +168,7 @@
                               </ImageView>
                            </graphic>
                            <contextMenu>
-                              <ContextMenu>
+                              <ContextMenu fx:id="groupContextMenu">
                                  <items>
                                     <MenuItem mnemonicParsing="false" text="Grouping" onAction="#groupSelectedShapes" />
                                     <MenuItem mnemonicParsing="false" text="Ungrouping" onAction="#groupSelectedShapes" />
@@ -176,15 +176,15 @@
                               </ContextMenu>
                            </contextMenu>
                         </Button>
-                        <Button fx:id="undoRedoButton" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Undo/Redo">
+                        <Button fx:id="undoRedoButton" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" onMouseClicked="#showUndoRedoMenu" prefHeight="51.0" prefWidth="90.0" text="Undo/Redo">
                            <font>
                               <Font size="12.0" />
                            </font>
                            <contextMenu>
-                              <ContextMenu>
+                              <ContextMenu fx:id="redoUndoContextMenu">
                                  <items>
-                                    <MenuItem mnemonicParsing="false" text="Undo" />
-                                    <MenuItem mnemonicParsing="false" text="Redo" />
+                                    <MenuItem mnemonicParsing="false" text="Undo" onAction="#handleUndo" />
+                                    <MenuItem mnemonicParsing="false" text="Redo" onAction="#handleRedo" />
                                  </items>
                               </ContextMenu>
                            </contextMenu>

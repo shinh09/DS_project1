@@ -12,10 +12,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
 import javafx.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+
+import java.util.*;
 
 public class DrawingEditorController {
 
@@ -61,11 +59,21 @@ public class DrawingEditorController {
     private ContextMenu shapeContextMenu;
 
     @FXML
+    private ContextMenu groupContextMenu;
+
+    @FXML
+    private ContextMenu redoUndoContextMenu;
+
+    @FXML
     private Canvas drawingCanvas;
 
     private GraphicsContext gc;
 
     private String selectedShape = null;
+
+    private String selectedGroup = null;
+
+    private String selectedRedoUndo = null;
 
     private double startX, startY;  // 이동을 위한 마우스 좌표 보정값
 
@@ -98,7 +106,7 @@ public class DrawingEditorController {
             });
         }
 
-        // 그룹화 메뉴 이벤트 설정
+        // 그룹화 메뉴 선택
         if (groupButton != null) {
             groupButton.setOnMouseClicked(event -> {
                 ContextMenu groupMenu = new ContextMenu();
@@ -111,6 +119,22 @@ public class DrawingEditorController {
 
                 groupMenu.getItems().addAll(groupItem, ungroupItem);
                 groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+            });
+        }
+
+        // Undo/Redo 메뉴 선택
+        if (undoRedoButton != null) {
+            undoRedoButton.setOnMouseClicked(event -> {
+                ContextMenu undoRedoMenu = new ContextMenu();
+
+                MenuItem undoItem = new MenuItem("Undo");
+                undoItem.setOnAction(e -> handleUndo());
+
+                MenuItem redoItem = new MenuItem("Redo");
+                redoItem.setOnAction(e -> handleRedo());
+
+                undoRedoMenu.getItems().addAll(undoItem, redoItem);
+                undoRedoMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
             });
         }
 
@@ -327,20 +351,20 @@ public class DrawingEditorController {
                 // 개별 도형 강조
                 switch (shape.type) {
                     case "➖ Line":
-                        // 선분을 따라 점선 강조
+                        // 선의 경로를 따라 점선 강조
                         gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
                         break;
 
                     case "⭕ Circle":
-                        double centerX = shape.startX;
-                        double centerY = shape.startY;
+                        // 원의 외곽선에 점선 강조
                         double width = shape.endX - shape.startX;
                         double height = shape.endY - shape.startY;
                         double size = Math.min(width, height);
-                        gc.strokeOval(centerX, centerY, size, size);
+                        gc.strokeOval(shape.startX, shape.startY, size, size);
                         break;
 
                     case "⏹ Rectangle":
+                        // 사각형 외곽선에 점선 강조
                         gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
                         break;
                 }
@@ -455,6 +479,8 @@ public class DrawingEditorController {
                 shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, endX, endY));
                 break;
         }
+        saveState();
+        redrawCanvas();
     }
 
     private void redrawCanvas() {
@@ -532,9 +558,9 @@ public class DrawingEditorController {
             return;
         }
 
-        resetMode();
-        currentMode = "Move";
-        System.out.println("Move mode activated. Drag shapes to move.");
+        resetMode(); // 다른 모드 초기화
+        currentMode = "Move"; // Move 모드 활성화
+        System.out.println("Move mode activated");
 
         drawingCanvas.setOnMousePressed(this::startMove);
         drawingCanvas.setOnMouseDragged(this::performMove);
@@ -614,6 +640,10 @@ public class DrawingEditorController {
             return;
         }
 
+        resetMode(); // 다른 모드 초기화
+        currentMode = "Copy"; // Copy 모드 설정
+        System.out.println("Copy mode activated. Shapes will be copied.");
+
         clipboard.clear();
 
         // 기준 좌표 (선택된 도형들의 최소 x, y 좌표)
@@ -646,50 +676,43 @@ public class DrawingEditorController {
             return;
         }
 
-        resetMode();
-        currentMode = "Paste";
+        resetMode(); // 다른 모드 이벤트 핸들러 초기화
+        currentMode = "Paste"; // Paste 모드 활성화
         System.out.println("Paste mode activated. Click on the canvas to place shapes.");
 
+        // Paste 모드에서만 캔버스 클릭 이벤트 설정
         drawingCanvas.setOnMousePressed(this::performPaste);
     }
 
     private void performPaste(MouseEvent event) {
+        // Paste 모드가 아닌 경우 실행 불가
+        if (!"Paste".equals(currentMode)) {
+            System.out.println("Paste mode is not active. Cannot paste shapes.");
+            return;
+        }
+
         double pasteStartX = event.getX();
         double pasteStartY = event.getY();
 
         List<ShapeRecord> newShapes = new ArrayList<>();
+        Map<Integer, Integer> groupIdMapping = new HashMap<>(); // 원본 그룹 ID -> 새로운 그룹 ID
 
-        // 클립보드의 도형들을 클릭한 위치에 상대적으로 붙여넣기
         for (ShapeRecord shape : clipboard) {
             double newStartX = pasteStartX + shape.startX;
             double newStartY = pasteStartY + shape.startY;
             double newEndX = pasteStartX + shape.endX;
             double newEndY = pasteStartY + shape.endY;
 
-            // 캔버스 경계를 벗어나지 않도록 보정
-            if (newStartX < 0) {
-                double diff = -newStartX;
-                newStartX += diff;
-                newEndX += diff;
-            }
-            if (newStartY < 0) {
-                double diff = -newStartY;
-                newStartY += diff;
-                newEndY += diff;
-            }
-            if (newEndX > drawingCanvas.getWidth()) {
-                double diff = newEndX - drawingCanvas.getWidth();
-                newStartX -= diff;
-                newEndX -= diff;
-            }
-            if (newEndY > drawingCanvas.getHeight()) {
-                double diff = newEndY - drawingCanvas.getHeight();
-                newStartY -= diff;
-                newEndY -= diff;
+            // 그룹 ID 매핑: 새로운 그룹 ID 생성
+            int newGroupId = -1;
+            if (shape.groupId != -1) {
+                newGroupId = groupIdMapping.computeIfAbsent(shape.groupId, id -> nextGroupId++);
             }
 
-            // 새로운 도형 생성 및 추가
-            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color));
+            // 새로운 도형 생성 및 그룹 ID 설정
+            ShapeRecord newShape = new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color);
+            newShape.groupId = newGroupId;
+            newShapes.add(newShape);
         }
 
         shapes.addAll(newShapes);
@@ -698,23 +721,7 @@ public class DrawingEditorController {
     }
 
 
-
     private int nextGroupId = 1; // 그룹 ID 생성용 변수
-
-    @FXML
-    private void handleGroupButtonClick(MouseEvent event) {
-        // 그룹 메뉴 표시
-        ContextMenu groupMenu = new ContextMenu();
-
-        MenuItem groupItem = new MenuItem("Grouping");
-        groupItem.setOnAction(e -> groupSelectedShapes());
-
-        MenuItem ungroupItem = new MenuItem("Ungrouping");
-        ungroupItem.setOnAction(e -> ungroupSelectedShapes());
-
-        groupMenu.getItems().addAll(groupItem, ungroupItem);
-        groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
-    }
 
     @FXML
     private void groupSelectedShapes() {
@@ -747,6 +754,57 @@ public class DrawingEditorController {
 
         System.out.println("Ungrouped selected shapes.");
         redrawCanvas();
+    }
+
+
+
+    private Stack<List<ShapeRecord>> undoStack = new Stack<>();
+    private Stack<List<ShapeRecord>> redoStack = new Stack<>();
+
+    @FXML
+    private void showUndoRedoMenu(MouseEvent event) {
+        // Undo/Redo 모드로 전환
+        resetMode(); // 다른 모드를 초기화
+        currentMode = "UndoRedo"; // Undo/Redo 모드 설정
+        System.out.println("Undo/Redo mode activated.");
+
+        if (event.getButton().equals(MouseButton.PRIMARY)) {
+            redoUndoContextMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
+        }
+    }
+
+    private void saveState() {
+        // 현재 상태를 복사하여 undoStack에 저장
+        List<ShapeRecord> currentState = new ArrayList<>();
+        for (ShapeRecord shape : shapes) {
+            currentState.add(new ShapeRecord(shape)); // 복사본 저장
+        }
+        undoStack.push(currentState);
+        redoStack.clear(); // 새로운 작업이 발생하면 redoStack 초기화
+    }
+
+    @FXML
+    private void handleUndo() {
+        if (!undoStack.isEmpty()) {
+            redoStack.push(new ArrayList<>(shapes)); // 현재 상태를 redoStack에 저장
+            shapes = undoStack.pop(); // 이전 상태로 되돌림
+            redrawCanvas();
+            System.out.println("Undo executed.");
+        } else {
+            System.out.println("Nothing to undo.");
+        }
+    }
+
+    @FXML
+    private void handleRedo() {
+        if (!redoStack.isEmpty()) {
+            undoStack.push(new ArrayList<>(shapes)); // 현재 상태를 undoStack에 저장
+            shapes = redoStack.pop(); // Redo 상태로 되돌림
+            redrawCanvas();
+            System.out.println("Redo executed.");
+        } else {
+            System.out.println("Nothing to redo.");
+        }
     }
 
 }
