@@ -151,16 +151,51 @@ public class DrawingEditorController {
 
         selectedShapes.clear();
 
+        // 클릭한 좌표를 기준으로 도형 감지
         for (int i = shapes.size() - 1; i >= 0; i--) {
             ShapeRecord shape = shapes.get(i);
+
             if (isPointInsideShape(clickX, clickY, shape)) {
                 selectedShapes.add(shape);
-                break;
+                break; // 가장 위의 도형 하나만 선택
             }
         }
 
         redrawCanvas();
         highlightShapes();
+    }
+
+    private boolean isPointInsideShape(double x, double y, ShapeRecord shape) {
+        final double TOLERANCE = 5.0; // 클릭 허용 오차
+
+        switch (shape.type) {
+            case "➖ Line":
+                // 선 근처에 있는지 검사
+                return isPointNearLine(x, y, shape.startX, shape.startY, shape.endX, shape.endY, TOLERANCE);
+
+            case "⭕ Circle":
+                // 원 내부에 있는지 검사
+                double centerX = (shape.startX + shape.endX) / 2;
+                double centerY = (shape.startY + shape.endY) / 2;
+                double radius = Math.abs(shape.endX - shape.startX) / 2;
+                return Math.hypot(x - centerX, y - centerY) <= radius;
+
+            case "⏹ Rectangle":
+                // 사각형 내부에 있는지 검사
+                return x >= shape.startX && x <= shape.endX &&
+                        y >= shape.startY && y <= shape.endY;
+
+            default:
+                return false;
+        }
+    }
+
+    private boolean isPointNearLine(double px, double py, double x1, double y1, double x2, double y2, double tolerance) {
+        double numerator = Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1);
+        double denominator = Math.hypot(y2 - y1, x2 - x1);
+        double distance = numerator / denominator;
+
+        return distance <= tolerance;
     }
 
     // Select 모드: 드래그로 다중 선택
@@ -179,16 +214,17 @@ public class DrawingEditorController {
     private void performDragSelect(MouseEvent event) {
         if (!"Select".equals(currentMode)) return;
 
+        // 드래그 끝점 보정
         double dragEndX = Math.max(2, Math.min(event.getX(), drawingCanvas.getWidth() - 2));
         double dragEndY = Math.max(2, Math.min(event.getY(), drawingCanvas.getHeight() - 2));
 
-        // 드래그 범위 계산 및 저장
+        // 드래그 영역 계산
         finalStartX = Math.min(dragStartX, dragEndX);
         finalStartY = Math.min(dragStartY, dragEndY);
         finalEndX = Math.max(dragStartX, dragEndX);
         finalEndY = Math.max(dragStartY, dragEndY);
 
-        // 드래그 범위를 초록색 점선으로 표시
+        // 드래그 영역 시각화
         redrawCanvas();
         gc.setStroke(Color.web("#33FF04"));
         gc.setLineWidth(2);
@@ -196,10 +232,10 @@ public class DrawingEditorController {
         gc.strokeRect(finalStartX, finalStartY, finalEndX - finalStartX, finalEndY - finalStartY);
         gc.setLineDashes(null);
 
-        // 범위 내에 포함된 도형 선택
+        // 드래그 영역 내에 완전히 포함된 도형 감지
         selectedShapes.clear();
         for (ShapeRecord shape : shapes) {
-            if (isShapeInsideBounds(shape, finalStartX, finalStartY, finalEndX, finalEndY)) {
+            if (isShapeFullyInsideBounds(shape, finalStartX, finalStartY, finalEndX, finalEndY)) {
                 selectedShapes.add(shape);
             }
         }
@@ -207,97 +243,56 @@ public class DrawingEditorController {
         highlightShapes(); // 드래그 중에도 선택된 도형 강조
     }
 
+    private boolean isShapeFullyInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
+        switch (shape.type) {
+            case "➖ Line":
+                // 선의 시작점과 끝점이 모두 드래그 영역 안에 있어야 함
+                return isPointInsideRectangle(shape.startX, shape.startY, startX, startY, endX, endY) &&
+                        isPointInsideRectangle(shape.endX, shape.endY, startX, startY, endX, endY);
+
+            case "⭕ Circle":
+            case "⏹ Rectangle":
+                // 사각형 또는 원의 경계가 드래그 영역에 완전히 포함되어야 함
+                return shape.startX >= startX && shape.endX <= endX &&
+                        shape.startY >= startY && shape.endY <= endY;
+
+            default:
+                return false;
+        }
+    }
+
+    private boolean isPointInsideRectangle(double x, double y, double startX, double startY, double endX, double endY) {
+        return x >= startX && x <= endX && y >= startY && y <= endY;
+    }
+
     private void handleCanvasRelease(MouseEvent event) {
         if ("Select".equals(currentMode)) {
-            // 드래그 중에 선택된 도형을 유지하고 화면을 다시 그립니다.
+            // 드래그 종료 시 선택된 도형 유지
             redrawCanvas();
-            highlightShapes(); // 선택된 도형에 초록색 점선을 유지합니다.
+            highlightShapes();
         }
     }
 
     private void highlightShapes() {
         gc.setStroke(Color.web("#33FF04"));
         gc.setLineWidth(2);
-        gc.setLineDashes(10); // 점선 패턴 설정 (10 픽셀 간격)
-
-        final double padding = 5; // 도형 테두리를 살짝 크게 만들기 위한 패딩 값
+        gc.setLineDashes(10);
 
         for (ShapeRecord shape : selectedShapes) {
             switch (shape.type) {
                 case "➖ Line":
-                    double dx = shape.endX - shape.startX;
-                    double dy = shape.endY - shape.startY;
-                    double length = Math.hypot(dx, dy);
-                    double padX = padding * (dx / length);
-                    double padY = padding * (dy / length);
-
-                    gc.strokeLine(shape.startX - padX, shape.startY - padY, shape.endX + padX, shape.endY + padY);
+                    gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
                     break;
 
                 case "⭕ Circle":
-                    double width = shape.endX - shape.startX;
-                    double height = shape.endY - shape.startY;
-                    double size = Math.min(width, height);
-                    gc.strokeRect(shape.startX, shape.startY, size, size);
-                    break;
-
                 case "⏹ Rectangle":
-                    gc.strokeRect(shape.startX - padding, shape.startY - padding,
-                            shape.endX - shape.startX + 2 * padding,
-                            shape.endY - shape.startY + 2 * padding);
+                    gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
                     break;
             }
         }
 
-        gc.setLineDashes(null); // 점선 패턴 해제
+        gc.setLineDashes(null); // 점선 해제
         gc.setStroke(Color.BLACK); // 기본 색상으로 되돌림
-    }
-
-    // 점이 드래그 범위 안에 있는지 확인
-    private boolean isPointInBounds(double x, double y, double startX, double startY, double endX, double endY) {
-        return x >= startX && x <= endX && y >= startY && y <= endY;
-    }
-
-
-    // 점이 도형 안에 있는지 확인
-    private boolean isPointInsideShape(double x, double y, ShapeRecord shape) {
-        switch (shape.type) {
-            case "➖ Line":
-                return isPointNearLine(x, y, shape.startX, shape.startY, shape.endX, shape.endY);
-            case "⭕ Circle":
-            case "⏹ Rectangle":
-                return x >= shape.startX && x <= shape.endX && y >= shape.startY && y <= shape.endY;
-            default:
-                return false;
-        }
-    }
-
-    private boolean isShapeInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
-        final double PADDING = 2.0; // 선택 범위를 조금만 넓히기 위한 패딩 값
-
-        switch (shape.type) {
-            case "➖ Line":
-                // 선의 시작점과 끝점이 드래그 범위 안에 있는지 확인 (패딩 적용)
-                return isPointInBounds(shape.startX, shape.startY, startX - PADDING, startY - PADDING, endX + PADDING, endY + PADDING) &&
-                        isPointInBounds(shape.endX, shape.endY, startX - PADDING, startY - PADDING, endX + PADDING, endY + PADDING);
-
-            case "⭕ Circle":
-            case "⏹ Rectangle":
-                // 사각형 또는 원의 경계 상자가 드래그 범위 안에 있는지 확인 (패딩 적용)
-                return shape.startX >= startX - PADDING && shape.endX <= endX + PADDING &&
-                        shape.startY >= startY - PADDING && shape.endY <= endY + PADDING;
-
-            default:
-                return false;
-        }
-    }
-
-    // 점이 선 근처에 있는지 확인
-    private boolean isPointNearLine(double x, double y, double x1, double y1, double x2, double y2) {
-        final double TOLERANCE = 5.0;
-        double distance = Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
-                Math.hypot(y2 - y1, x2 - x1);
-        return distance <= TOLERANCE;
     }
 
     //Shape 컨트롤러
