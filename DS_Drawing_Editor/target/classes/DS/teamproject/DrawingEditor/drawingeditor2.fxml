@@ -156,7 +156,7 @@
                            </contextMenu>
                         </Button>
 
-                        <Button fx:id="groupButton" mnemonicParsing="false" onMouseClicked="#handleGroupButtonClick" prefHeight="51.0" prefWidth="90.0" text="Group" >
+                        <Button fx:id="groupButton" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Group" >
                            <font>
                               <Font size="12.0" />
                            </font>

@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Side;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -90,7 +91,7 @@ public class DrawingEditorController {
     private double startX, startY;  // 이동을 위한 마우스 좌표 보정값
 
     private List<ShapeRecord> shapes = new ArrayList<>();
-    private List<ShapeRecord> clipboard = new ArrayList<>();
+    private final List<ShapeRecord> clipboard = new ArrayList<>();
     private MouseEvent event;
 
     //저장기능
@@ -104,6 +105,8 @@ public class DrawingEditorController {
 
     @FXML
     public void initialize() {
+
+        saveState();
 
         // ColorPicker의 기본 색상을 검정색으로 설정
         colorPicker.setValue(Color.BLACK);
@@ -129,19 +132,30 @@ public class DrawingEditorController {
             });
         }
 
-        // 그룹화 메뉴 선택 확인 메세지 띄우게
-        for (MenuItem item : groupContextMenu.getItems()) {
-            item.setOnAction(event -> {
-                selectedGroup = item.getText();
-                System.out.println("Selected Group Type: " + selectedGroup);
+        if (groupButton != null) {
+            groupButton.setOnMouseClicked(event -> {
+                ContextMenu groupMenu = new ContextMenu();
+                MenuItem groupItem = new MenuItem("Grouping");
+                groupItem.setOnAction(e -> groupSelectedShapes());
+                MenuItem ungroupItem = new MenuItem("Ungrouping");
+                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
+                groupMenu.getItems().addAll(groupItem, ungroupItem);
+                groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
             });
         }
 
-        // Undo/Redo 메뉴 선택 확인 메세지 띄우게
-        for (MenuItem item : redoUndoContextMenu.getItems()) {
-            item.setOnAction(event -> {
-                selectedRedoUndo = item.getText();
-                System.out.println("Selected Undo/Redo menu: " + selectedRedoUndo);
+        if (undoRedoButton != null) {
+            undoRedoButton.setOnMouseClicked(event -> {
+                ContextMenu undoRedoMenu = new ContextMenu();
+
+                MenuItem undoItem = new MenuItem("Undo");
+                undoItem.setOnAction(e -> handleUndo());
+
+                MenuItem redoItem = new MenuItem("Redo");
+                redoItem.setOnAction(e -> handleRedo());
+
+                undoRedoMenu.getItems().addAll(undoItem, redoItem);
+                undoRedoMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
             });
         }
 
@@ -193,7 +207,7 @@ public class DrawingEditorController {
 
     //select 컨트롤러
 
-    private List<ShapeRecord> selectedShapes = new ArrayList<>();
+    private final List<ShapeRecord> selectedShapes = new ArrayList<>();
 
     private double dragStartX, dragStartY;
 
@@ -628,6 +642,8 @@ public class DrawingEditorController {
             shape.endY += deltaY;
         }
 
+        saveState();
+
         // 드래그 시작점 업데이트
         dragStartX = event.getX();
         dragStartY = event.getY();
@@ -692,6 +708,8 @@ public class DrawingEditorController {
         double pasteStartX = event.getX();
         double pasteStartY = event.getY();
 
+        saveState();
+
         List<ShapeRecord> newShapes = new ArrayList<>();
 
         // 클립보드의 도형들을 클릭한 위치에 상대적으로 붙여넣기
@@ -737,45 +755,14 @@ public class DrawingEditorController {
     private int nextGroupId = 1; // 그룹 ID 생성용 변수
 
     @FXML
-    private void handleGroupButtonClick(MouseEvent event) {
-        // group 모드로 전환
-        resetMode(); // 다른 모드를 초기화
-        currentMode = "Group"; // Group 모드 설정
-        System.out.println("Group mode activated.");
-
-        if (event.getButton() == MouseButton.PRIMARY) { // 왼쪽 클릭 시
-            // ContextMenu가 아직 생성되지 않았다면 초기화
-            if (groupContextMenu == null) {
-                groupContextMenu = new ContextMenu();
-
-                // 그룹화 메뉴 항목
-                MenuItem groupItem = new MenuItem("Grouping");
-                groupItem.setOnAction(e -> groupSelectedShapes());
-
-                // 그룹 해제 메뉴 항목
-                MenuItem ungroupItem = new MenuItem("Ungrouping");
-                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
-
-                // 메뉴 항목 추가
-                groupContextMenu.getItems().addAll(groupItem, ungroupItem);
-            }
-
-            // 이미 메뉴가 표시 중이라면 닫기
-            if (groupContextMenu.isShowing()) {
-                groupContextMenu.hide();
-            } else {
-                // 버튼을 기준으로 메뉴 표시
-                groupContextMenu.show(groupButton, event.getScreenX(), event.getScreenY());
-            }
-        }
-    }
-
-    @FXML
     private void groupSelectedShapes() {
         if (selectedShapes.isEmpty()) {
             System.out.println("No shapes selected to group.");
             return;
         }
+
+        saveState();
+
         // 새로운 그룹 ID 부여
         int groupId = nextGroupId++;
         for (ShapeRecord shape : selectedShapes) {
@@ -791,6 +778,9 @@ public class DrawingEditorController {
             System.out.println("No shapes selected to ungroup.");
             return;
         }
+
+        saveState();
+
         // 선택된 도형들의 그룹 해제
         for (ShapeRecord shape : selectedShapes) {
             shape.groupId = -1; // 그룹 해제
@@ -801,8 +791,8 @@ public class DrawingEditorController {
 
 
     //------------------------------undo/redo 기능----------------------------
-    private Stack<List<ShapeRecord>> undoStack = new Stack<>();
-    private Stack<List<ShapeRecord>> redoStack = new Stack<>();
+    private final Stack<List<ShapeRecord>> undoStack = new Stack<>();
+    private final Stack<List<ShapeRecord>> redoStack = new Stack<>();
 
     @FXML
     private void showUndoRedoMenu(MouseEvent event) {
@@ -812,29 +802,7 @@ public class DrawingEditorController {
         System.out.println("Undo/Redo mode activated.");
 
         if (event.getButton().equals(MouseButton.PRIMARY)) {
-            // ContextMenu가 이미 존재하지 않으면 초기화
-            if (redoUndoContextMenu == null) {
-                redoUndoContextMenu = new ContextMenu();
-
-                // Undo 메뉴 항목
-                MenuItem undoItem = new MenuItem("Undo");
-                undoItem.setOnAction(e -> handleUndo());
-
-                // Redo 메뉴 항목
-                MenuItem redoItem = new MenuItem("Redo");
-                redoItem.setOnAction(e -> handleRedo());
-
-                // 메뉴 항목 추가
-                redoUndoContextMenu.getItems().addAll(undoItem, redoItem);
-            }
-
-            // 이미 메뉴가 표시 중이면 숨기기
-            if (redoUndoContextMenu.isShowing()) {
-                redoUndoContextMenu.hide();
-            } else {
-                // 메뉴 표시
-                redoUndoContextMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
-            }
+            redoUndoContextMenu.show(undoRedoButton, event.getScreenX(), event.getScreenY());
         }
     }
 
@@ -876,6 +844,8 @@ public class DrawingEditorController {
     //Color controller
     private void handleColorChange() {
         Color selectedColor = colorPicker.getValue();
+
+        saveState();
 
         if (!selectedShapes.isEmpty()) {
             // 선택된 모든 도형의 색상 변경
