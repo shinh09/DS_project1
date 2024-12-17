@@ -451,7 +451,7 @@ public class DrawingEditorController {
 
 
 
-// ------------------------------shape 기능-------------------------
+    //------------------------------shape 기능----------------------------
     //Shape 컨트롤러
     @FXML
     private void showShapeMenu(MouseEvent event) {
@@ -597,7 +597,7 @@ public class DrawingEditorController {
     }
 
 
-//-------------------------------------move 기능------------------
+    //-------------------------------------move 기능------------------
     // move 컨트롤러
     @FXML
     private void handleMoveButtonClick(ActionEvent event) {
@@ -698,6 +698,8 @@ public class DrawingEditorController {
         redrawCanvas(); // 화면 다시 그리기
     }
 
+
+    //------------------------------copy 기능----------------------------
     @FXML
     private void handleCopyButtonClick(ActionEvent event) {
         if (selectedShapes.isEmpty()) {
@@ -734,6 +736,7 @@ public class DrawingEditorController {
     }
 
 
+    //------------------------------paste 기능----------------------------
     @FXML
     private void handlePasteButtonClick(ActionEvent event) {
         if (clipboard.isEmpty()) {
@@ -786,7 +789,7 @@ public class DrawingEditorController {
     }
 
 
-    //-------------------------group 구현---------------------
+    //------------------------------group 기능----------------------------
     private int nextGroupId = 1; // 그룹 ID 생성용 변수
     @FXML
     private void groupSelectedShapes() {
@@ -871,7 +874,7 @@ public class DrawingEditorController {
         }
     }
 
-    ///--------------------------------------color 기능 ---------------------------------
+    //------------------------------color 기능----------------------------
     //Color controller
     private void handleColorChange() {
         Color selectedColor = colorPicker.getValue();
@@ -896,7 +899,7 @@ public class DrawingEditorController {
         }
     }
 
-    // ----------------------------------------저장 기능---------------------------------------
+    //------------------------------save 기능----------------------------
     // Save (저장) 기능
     @FXML
     private void handleSave() {
