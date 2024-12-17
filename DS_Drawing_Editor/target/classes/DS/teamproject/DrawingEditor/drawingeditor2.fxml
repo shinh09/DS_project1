@@ -40,7 +40,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.ds_drawing_editor.Controller.DrawingEditorController">
+<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="DS.teamproject.DrawingEditor.Controller.DrawingEditorController">
    <children>
       <VBox fx:id="menuBox" prefHeight="515" prefWidth="640.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
          <children>
@@ -74,7 +74,7 @@
                               <Font size="12.0" />
                            </font>
                         </Button>
-                        <Button fx:id="moveButton" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Move">
+                        <Button fx:id="moveButton" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Move" onAction="#handleMoveButtonClick">
                            <graphic>
                               <ImageView fitHeight="30.0" fitWidth="30.0">
                                  <image>
@@ -86,7 +86,7 @@
                               <Font size="12.0" />
                            </font>
                         </Button>
-                        <Button fx:id="copyButton" layoutX="10.0" layoutY="122.0" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Copy" >
+                        <Button fx:id="copyButton" layoutX="10.0" layoutY="122.0" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Copy" onAction="#handleCopyButtonClick">
                            <font>
                               <Font size="12.0" />
                            </font>
@@ -98,7 +98,7 @@
                               </ImageView>
                            </graphic>
                         </Button>
-                        <Button fx:id="pasteButton" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Paste" >
+                        <Button fx:id="pasteButton" mnemonicParsing="false" prefHeight="51.0" prefWidth="90.0" text="Paste" onAction="#handlePasteButtonClick">
                            <graphic>
                               <ImageView fitHeight="30.0" fitWidth="30.0">
                                  <image>
@@ -139,7 +139,7 @@
                            <graphic>
                               <ImageView fitHeight="35.0" fitWidth="35.0">
                                  <image>
-                                    <Image url="@../../../../../../../icons/grommet-icons_paint.png" />
+                                    <Image url="@icons/grommet-icons_paint.png" />
                                  </image>
                               </ImageView>
                            </graphic>
