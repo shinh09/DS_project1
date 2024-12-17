@@ -45,14 +45,14 @@
       <VBox fx:id="menuBox" prefHeight="515" prefWidth="640.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
          <children>
 
-                  <MenuBar VBox.vgrow="NEVER">
+            <MenuBar VBox.vgrow="NEVER">
                <menus>
                   <Menu mnemonicParsing="false" text="File">
                      <items>
-                        <MenuItem mnemonicParsing="false" text="Save" />
+                        <MenuItem mnemonicParsing="false" text="Save" onAction="#handleSave"/>
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Save As" />
-                        <SeparatorMenuItem mnemonicParsing="false" />
+                        <MenuItem mnemonicParsing="false" text="Save As" onAction="#handleSaveAs"/>
+                        <SeparatorMenuItem mnemonicParsing="false" onAction="#handleLoad"/>
                         <MenuItem mnemonicParsing="false" text="File Load" />
                      </items>
                   </Menu>
@@ -170,8 +170,8 @@
                            <contextMenu>
                               <ContextMenu>
                                  <items>
-                                    <MenuItem mnemonicParsing="false" text="Grouping" />
-                                    <MenuItem mnemonicParsing="false" text="Ungrouping" />
+                                    <MenuItem mnemonicParsing="false" text="Grouping" onAction="#groupSelectedShapes" />
+                                    <MenuItem mnemonicParsing="false" text="Ungrouping" onAction="#groupSelectedShapes" />
                                  </items>
                               </ContextMenu>
                            </contextMenu>
