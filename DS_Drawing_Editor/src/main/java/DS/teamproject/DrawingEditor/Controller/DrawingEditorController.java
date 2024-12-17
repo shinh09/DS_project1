@@ -14,6 +14,8 @@ import javafx.scene.paint.Color;
 import javafx.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class DrawingEditorController {
 
@@ -96,6 +98,21 @@ public class DrawingEditorController {
             });
         }
 
+        // 그룹화 메뉴 이벤트 설정
+        if (groupButton != null) {
+            groupButton.setOnMouseClicked(event -> {
+                ContextMenu groupMenu = new ContextMenu();
+
+                MenuItem groupItem = new MenuItem("Grouping");
+                groupItem.setOnAction(e -> groupSelectedShapes());
+
+                MenuItem ungroupItem = new MenuItem("Ungrouping");
+                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
+
+                groupMenu.getItems().addAll(groupItem, ungroupItem);
+                groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+            });
+        }
 
     }
 
@@ -150,14 +167,30 @@ public class DrawingEditorController {
         double clickY = event.getY();
 
         selectedShapes.clear();
+        int clickedGroupId = -1;
 
-        // 클릭한 좌표를 기준으로 도형 감지
-        for (int i = shapes.size() - 1; i >= 0; i--) {
-            ShapeRecord shape = shapes.get(i);
+        // 그룹 외곽선 먼저 검사
+        for (ShapeRecord shape : shapes) {
+            if (shape.groupId != -1 && isPointInsideRectangle(clickX, clickY, shape.startX, shape.startY, shape.endX, shape.endY)) {
+                clickedGroupId = shape.groupId;
+                break;
+            }
+        }
 
-            if (isPointInsideShape(clickX, clickY, shape)) {
-                selectedShapes.add(shape);
-                break; // 가장 위의 도형 하나만 선택
+        if (clickedGroupId != -1) {
+            // 그룹 전체 선택
+            for (ShapeRecord shape : shapes) {
+                if (shape.groupId == clickedGroupId) {
+                    selectedShapes.add(shape);
+                }
+            }
+        } else {
+            // 개별 도형 선택
+            for (ShapeRecord shape : shapes) {
+                if (isPointInsideShape(clickX, clickY, shape)) {
+                    selectedShapes.add(shape);
+                    break;
+                }
             }
         }
 
@@ -274,26 +307,59 @@ public class DrawingEditorController {
     }
 
     private void highlightShapes() {
-        gc.setStroke(Color.web("#33FF04"));
+        gc.setStroke(Color.web("#33FF04")); // 점선 색상
         gc.setLineWidth(2);
-        gc.setLineDashes(10);
+        gc.setLineDashes(10); // 점선 설정
+
+        Map<Integer, double[]> groupBounds = new HashMap<>();
 
         for (ShapeRecord shape : selectedShapes) {
-            switch (shape.type) {
-                case "➖ Line":
-                    gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
-                    break;
+            if (shape.groupId != -1) {
+                // 그룹 경계 계산
+                groupBounds.putIfAbsent(shape.groupId, new double[]{Double.MAX_VALUE, Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE});
+                double[] bounds = groupBounds.get(shape.groupId);
 
-                case "⭕ Circle":
-                case "⏹ Rectangle":
-                    gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
-                    break;
+                bounds[0] = Math.min(bounds[0], shape.startX); // minX
+                bounds[1] = Math.min(bounds[1], shape.startY); // minY
+                bounds[2] = Math.max(bounds[2], shape.endX);   // maxX
+                bounds[3] = Math.max(bounds[3], shape.endY);   // maxY
+            } else {
+                // 개별 도형 강조
+                switch (shape.type) {
+                    case "➖ Line":
+                        // 선분을 따라 점선 강조
+                        gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
+                        break;
+
+                    case "⭕ Circle":
+                        double centerX = shape.startX;
+                        double centerY = shape.startY;
+                        double width = shape.endX - shape.startX;
+                        double height = shape.endY - shape.startY;
+                        double size = Math.min(width, height);
+                        gc.strokeOval(centerX, centerY, size, size);
+                        break;
+
+                    case "⏹ Rectangle":
+                        gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
+                        break;
+                }
             }
         }
 
+        // 그룹 외곽선 그리기
+        for (double[] bounds : groupBounds.values()) {
+            double x = bounds[0];
+            double y = bounds[1];
+            double width = bounds[2] - bounds[0];
+            double height = bounds[3] - bounds[1];
+            gc.strokeRect(x, y, width, height);
+        }
+
         gc.setLineDashes(null); // 점선 해제
-        gc.setStroke(Color.BLACK); // 기본 색상으로 되돌림
+        gc.setStroke(Color.BLACK); // 기본 색상 복구
     }
+
 
     //Shape 컨트롤러
     @FXML
@@ -418,12 +484,10 @@ public class DrawingEditorController {
     }
 
     private static class ShapeRecord {
-        String type;       // 도형의 타입 ("Line", "Circle", "Rectangle" 등)
-        double startX;     // 시작 X 좌표
-        double startY;     // 시작 Y 좌표
-        double endX;       // 끝 X 좌표
-        double endY;       // 끝 Y 좌표
+        String type;       // 도형의 타입
+        double startX, startY, endX, endY;  // 도형의 좌표
         Color color;       // 도형의 색상
+        int groupId = -1;  // 그룹 ID (-1: 그룹화되지 않음)
 
         // 기본 생성자 (색상을 전달하지 않는 경우)
         ShapeRecord(String type, double startX, double startY, double endX, double endY) {
@@ -632,6 +696,59 @@ public class DrawingEditorController {
         redrawCanvas();
         System.out.println(newShapes.size() + " shape(s) pasted at (" + pasteStartX + ", " + pasteStartY + ").");
     }
+
+
+
+    private int nextGroupId = 1; // 그룹 ID 생성용 변수
+
+    @FXML
+    private void handleGroupButtonClick(MouseEvent event) {
+        // 그룹 메뉴 표시
+        ContextMenu groupMenu = new ContextMenu();
+
+        MenuItem groupItem = new MenuItem("Grouping");
+        groupItem.setOnAction(e -> groupSelectedShapes());
+
+        MenuItem ungroupItem = new MenuItem("Ungrouping");
+        ungroupItem.setOnAction(e -> ungroupSelectedShapes());
+
+        groupMenu.getItems().addAll(groupItem, ungroupItem);
+        groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+    }
+
+    @FXML
+    private void groupSelectedShapes() {
+        if (selectedShapes.isEmpty()) {
+            System.out.println("No shapes selected to group.");
+            return;
+        }
+
+        // 새로운 그룹 ID 부여
+        int groupId = nextGroupId++;
+        for (ShapeRecord shape : selectedShapes) {
+            shape.groupId = groupId;
+        }
+
+        System.out.println("Grouped " + selectedShapes.size() + " shapes into group " + groupId);
+        redrawCanvas();
+    }
+
+    @FXML
+    private void ungroupSelectedShapes() {
+        if (selectedShapes.isEmpty()) {
+            System.out.println("No shapes selected to ungroup.");
+            return;
+        }
+
+        // 선택된 도형들의 그룹 해제
+        for (ShapeRecord shape : selectedShapes) {
+            shape.groupId = -1; // 그룹 해제
+        }
+
+        System.out.println("Ungrouped selected shapes.");
+        redrawCanvas();
+    }
+
 }
 
 

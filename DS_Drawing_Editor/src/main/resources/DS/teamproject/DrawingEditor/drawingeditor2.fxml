@@ -170,8 +170,8 @@
                            <contextMenu>
                               <ContextMenu>
                                  <items>
-                                    <MenuItem mnemonicParsing="false" text="Grouping" />
-                                    <MenuItem mnemonicParsing="false" text="Ungrouping" />
+                                    <MenuItem mnemonicParsing="false" text="Grouping" onAction="#groupSelectedShapes" />
+                                    <MenuItem mnemonicParsing="false" text="Ungrouping" onAction="#groupSelectedShapes" />
                                  </items>
                               </ContextMenu>
                            </contextMenu>
