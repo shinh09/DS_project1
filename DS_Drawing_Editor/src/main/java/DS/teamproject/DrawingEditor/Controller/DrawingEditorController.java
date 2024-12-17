@@ -1,5 +1,9 @@
 package DS.teamproject.DrawingEditor.Controller;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -10,12 +14,16 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
-import javafx.event.ActionEvent;
+import java.io.*;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+
 
 public class DrawingEditorController {
 
@@ -37,6 +45,7 @@ public class DrawingEditorController {
 
     @FXML
     private Button colorButton;
+
 
     @FXML
     private ContextMenu colorContextMenu;
@@ -70,13 +79,25 @@ public class DrawingEditorController {
     private double startX, startY;  // 이동을 위한 마우스 좌표 보정값
 
     private List<ShapeRecord> shapes = new ArrayList<>();
-    private List<ShapeRecord> selectedShapes = new ArrayList<>();
+
     private List<ShapeRecord> clipboard = new ArrayList<>();
+    private MouseEvent event;
+
+    //저장기능
+    private Button saveButton;
+    private Button saveAsButton;
+    private Button loadButton;
+    private File currentFile = null; // 현재 저장된 파일 경로
+    private Stage primaryStage;
 
 
 
     @FXML
     public void initialize() {
+
+        // ColorPicker의 기본 색상을 검정색으로 설정
+        colorPicker.setValue(Color.BLACK);
+
         // 실행 확인
         if (drawingCanvas == null) {
             System.out.println("drawingCanvas is null!");
@@ -90,6 +111,23 @@ public class DrawingEditorController {
         // 초기 모드 설정
         resetMode();
 
+        // 그룹화 메뉴 이벤트 설정
+        if (groupButton != null) {
+            groupButton.setOnMouseClicked(event -> {
+                ContextMenu groupMenu = new ContextMenu();
+                MenuItem groupItem = new MenuItem("Grouping");
+                groupItem.setOnAction(e -> groupSelectedShapes());
+                MenuItem ungroupItem = new MenuItem("Ungrouping");
+                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
+                groupMenu.getItems().addAll(groupItem, ungroupItem);
+                groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
+            });
+        }
+
+
+        // ColorPicker 이벤트 핸들러 설정
+        colorPicker.setOnAction(event -> handleColorChange());
+
         // 도형 선택 확인 메세지 띄우게
         for (MenuItem item : shapeContextMenu.getItems()) {
             item.setOnAction(event -> {
@@ -98,21 +136,6 @@ public class DrawingEditorController {
             });
         }
 
-        // 그룹화 메뉴 이벤트 설정
-        if (groupButton != null) {
-            groupButton.setOnMouseClicked(event -> {
-                ContextMenu groupMenu = new ContextMenu();
-
-                MenuItem groupItem = new MenuItem("Grouping");
-                groupItem.setOnAction(e -> groupSelectedShapes());
-
-                MenuItem ungroupItem = new MenuItem("Ungrouping");
-                ungroupItem.setOnAction(e -> ungroupSelectedShapes());
-
-                groupMenu.getItems().addAll(groupItem, ungroupItem);
-                groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
-            });
-        }
 
     }
 
@@ -155,8 +178,9 @@ public class DrawingEditorController {
     }
 
 
-
     //select 컨트롤러
+
+    private List<ShapeRecord> selectedShapes = new ArrayList<>();
 
     private double dragStartX, dragStartY;
 
@@ -167,6 +191,7 @@ public class DrawingEditorController {
         double clickY = event.getY();
 
         selectedShapes.clear();
+
         int clickedGroupId = -1;
 
         // 그룹 외곽선 먼저 검사
@@ -194,42 +219,36 @@ public class DrawingEditorController {
             }
         }
 
+        for (int i = shapes.size() - 1; i >= 0; i--) {
+            ShapeRecord shape = shapes.get(i);
+            if (isPointInsideShape(clickX, clickY, shape)) {
+                selectedShapes.add(shape);
+                break;
+            }
+        }
+
         redrawCanvas();
         highlightShapes();
     }
 
-    private boolean isPointInsideShape(double x, double y, ShapeRecord shape) {
-        final double TOLERANCE = 5.0; // 클릭 허용 오차
 
-        switch (shape.type) {
-            case "➖ Line":
-                // 선 근처에 있는지 검사
-                return isPointNearLine(x, y, shape.startX, shape.startY, shape.endX, shape.endY, TOLERANCE);
 
-            case "⭕ Circle":
-                // 원 내부에 있는지 검사
-                double centerX = (shape.startX + shape.endX) / 2;
-                double centerY = (shape.startY + shape.endY) / 2;
-                double radius = Math.abs(shape.endX - shape.startX) / 2;
-                return Math.hypot(x - centerX, y - centerY) <= radius;
 
-            case "⏹ Rectangle":
-                // 사각형 내부에 있는지 검사
-                return x >= shape.startX && x <= shape.endX &&
-                        y >= shape.startY && y <= shape.endY;
 
-            default:
-                return false;
-        }
-    }
 
-    private boolean isPointNearLine(double px, double py, double x1, double y1, double x2, double y2, double tolerance) {
-        double numerator = Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1);
-        double denominator = Math.hypot(y2 - y1, x2 - x1);
-        double distance = numerator / denominator;
 
-        return distance <= tolerance;
-    }
+
+
+
+
+
+
+
+
+
+
+    // Select 모드: 드래그로 다중 선택
+    private double finalStartX, finalStartY, finalEndX, finalEndY;
 
     // Select 모드: 드래그로 다중 선택
     private void startSelect(MouseEvent event) {
@@ -242,7 +261,7 @@ public class DrawingEditorController {
         selectedShapes.clear();
     }
 
-    private double finalStartX, finalStartY, finalEndX, finalEndY;
+
 
     private void performDragSelect(MouseEvent event) {
         if (!"Select".equals(currentMode)) return;
@@ -356,399 +375,41 @@ public class DrawingEditorController {
             gc.strokeRect(x, y, width, height);
         }
 
-        gc.setLineDashes(null); // 점선 해제
-        gc.setStroke(Color.BLACK); // 기본 색상 복구
-    }
 
-
-    //Shape 컨트롤러
-    @FXML
-    private void showShapeMenu(MouseEvent event) {
-
-        // Shape 모드로 전환
-        activateShapeMode();
-
-        if (event.getButton().equals(MouseButton.PRIMARY)) {
-            shapeContextMenu.show(shapeButton, event.getScreenX(), event.getScreenY());
-        }
-    }
-
-
-
-    private void startDrawing(MouseEvent event) {
-        if (selectedShape == null) return;
-
-        // 시작점을 사용자가 클릭한 위치로 설정하고 보정
-        startX = Math.max(2, Math.min(event.getX(), drawingCanvas.getWidth() - 2));
-        startY = Math.max(2, Math.min(event.getY(), drawingCanvas.getHeight() - 2));
-
+        gc.setLineDashes(null);
         gc.setStroke(Color.BLACK);
-        gc.setLineWidth(2);
     }
 
-    private void drawShape(MouseEvent event) {
-        if (selectedShape == null) return;
+    // 점이 드래그 범위 안에 있는지 확인
+    private boolean isPointInBounds(double x, double y, double startX, double startY, double endX, double endY) {
+        return x >= startX && x <= endX && y >= startY && y <= endY;
+    }
 
-        // 끝점 보정: 캔버스 범위를 벗어나지 않도록 조정
-        double endX = Math.max(2, Math.min(event.getX(), drawingCanvas.getWidth() - 2));
-        double endY = Math.max(2, Math.min(event.getY(), drawingCanvas.getHeight() - 2));
 
-        // 이전 도형 지우기
-        gc.clearRect(0, 0, drawingCanvas.getWidth(), drawingCanvas.getHeight());
-        redrawCanvas();  // 기존 도형 다시 그리기
-
-        switch (selectedShape) {
+    // 점이 도형 안에 있는지 확인
+    private boolean isPointInsideShape(double x, double y, ShapeRecord shape) {
+        switch (shape.type) {
             case "➖ Line":
-                // 선은 보정 없이 원래대로 그리되, 끝점만 캔버스 내로 보정
-                gc.strokeLine(startX, startY, endX, endY);
-                break;
+                return isPointNearLine(x, y, shape.startX, shape.startY, shape.endX, shape.endY);
             case "⭕ Circle":
-                double startXCorrected = Math.min(startX, endX);
-                double startYCorrected = Math.min(startY, endY);
-                double width = endX - startXCorrected;
-                double height = endY - startYCorrected;
-                double size = Math.min(width, height);
-                gc.strokeOval(startXCorrected, startYCorrected, size, size);
-                break;
             case "⏹ Rectangle":
-                startXCorrected = Math.min(startX, endX);
-                startYCorrected = Math.min(startY, endY);
-                double rectWidth = endX - startXCorrected;
-                double rectHeight = endY - startYCorrected;
-                gc.strokeRect(startXCorrected, startYCorrected, rectWidth, rectHeight);
-                break;
+                return x >= shape.startX && x <= shape.endX && y >= shape.startY && y <= shape.endY;
+            default:
+                return false;
         }
     }
 
-
-    private void finalizeShape(MouseEvent event) {
-        if (selectedShape == null) return;
-
-        // 끝점 보정: 캔버스 범위를 벗어나지 않도록 조정
-        double endX = Math.max(2, Math.min(event.getX(), drawingCanvas.getWidth() - 2));
-        double endY = Math.max(2, Math.min(event.getY(), drawingCanvas.getHeight() - 2));
-
-        gc.setStroke(Color.BLACK);
-        gc.setLineWidth(2);
-
-        switch (selectedShape) {
-            case "➖ Line":
-                // 선은 보정 없이 원래대로 그리되, 끝점만 캔버스 내로 보정
-                gc.strokeLine(startX, startY, endX, endY);
-                shapes.add(new ShapeRecord(selectedShape, startX, startY, endX, endY));
-                break;
-            case "⭕ Circle":
-                double startXCorrected = Math.min(startX, endX);
-                double startYCorrected = Math.min(startY, endY);
-                double width = endX - startXCorrected;
-                double height = endY - startYCorrected;
-                double size = Math.min(width, height);
-                gc.strokeOval(startXCorrected, startYCorrected, size, size);
-                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, startXCorrected + size, startYCorrected + size));
-                break;
-            case "⏹ Rectangle":
-                startXCorrected = Math.min(startX, endX);
-                startYCorrected = Math.min(startY, endY);
-                double rectWidth = endX - startXCorrected;
-                double rectHeight = endY - startYCorrected;
-                gc.strokeRect(startXCorrected, startYCorrected, rectWidth, rectHeight);
-                shapes.add(new ShapeRecord(selectedShape, startXCorrected, startYCorrected, endX, endY));
-                break;
-        }
+    private boolean isShapeInsideBounds(ShapeRecord shape, double startX, double startY, double endX, double endY) {
+        // 도형의 좌표가 드래그 영역 안에 있는지 확인
+        return isPointInBounds(shape.startX, shape.startY, startX, startY, endX, endY) &&
+                isPointInBounds(shape.endX, shape.endY, startX, startY, endX, endY);
     }
 
-    private void redrawCanvas() {
-        gc.clearRect(0, 0, drawingCanvas.getWidth(), drawingCanvas.getHeight());
-
-        for (ShapeRecord shape : shapes) {
-            gc.setStroke(shape.color != null ? shape.color : Color.BLACK);
-            gc.setLineWidth(2);
-
-            switch (shape.type) {
-                case "➖ Line":
-                    gc.strokeLine(shape.startX, shape.startY, shape.endX, shape.endY);
-                    break;
-                case "⭕ Circle":
-                    double width = shape.endX - shape.startX;
-                    double height = shape.endY - shape.startY;
-                    double size = Math.min(width, height);
-                    gc.strokeOval(shape.startX, shape.startY, size, size);
-                    break;
-                case "⏹ Rectangle":
-                    gc.strokeRect(shape.startX, shape.startY, shape.endX - shape.startX, shape.endY - shape.startY);
-                    break;
-            }
-        }
-
-        highlightShapes(); // 선택된 도형 강조 유지
+    // 점이 선 근처에 있는지 확인
+    private boolean isPointNearLine(double x, double y, double x1, double y1, double x2, double y2) {
+        final double TOLERANCE = 5.0;
+        double distance = Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
+                Math.hypot(y2 - y1, x2 - x1);
+        return distance <= TOLERANCE;
     }
-
-    private static class ShapeRecord {
-        String type;       // 도형의 타입
-        double startX, startY, endX, endY;  // 도형의 좌표
-        Color color;       // 도형의 색상
-        int groupId = -1;  // 그룹 ID (-1: 그룹화되지 않음)
-
-        // 기본 생성자 (색상을 전달하지 않는 경우)
-        ShapeRecord(String type, double startX, double startY, double endX, double endY) {
-            this.type = type;
-            this.startX = startX;
-            this.startY = startY;
-            this.endX = endX;
-            this.endY = endY;
-            this.color = Color.BLACK; // 기본 색상은 검정색
-        }
-
-        // 색상을 포함하는 생성자
-        ShapeRecord(String type, double startX, double startY, double endX, double endY, Color color) {
-            this.type = type;
-            this.startX = startX;
-            this.startY = startY;
-            this.endX = endX;
-            this.endY = endY;
-            this.color = (color != null) ? color : Color.BLACK; // null인 경우 기본 색상으로 설정
-        }
-
-        // 복사 생성자
-        ShapeRecord(ShapeRecord other) {
-            this(other.type, other.startX, other.startY, other.endX, other.endY, other.color);
-        }
-    }
-
-    // color 컨트롤러
-    // 선택된 도형의 색상 적용
-    @FXML
-    private void showColorContextMenu(MouseEvent event) {
-        if (event.getButton().equals(MouseButton.PRIMARY)) {
-            colorContextMenu.show(colorButton, event.getScreenX(), event.getScreenY());
-        }
-    }
-
-    // move 컨트롤러
-    @FXML
-    private void handleMoveButtonClick(ActionEvent event) {
-        if (selectedShapes.isEmpty()) {
-            System.out.println("No shapes selected to move.");
-            return;
-        }
-
-        resetMode();
-        currentMode = "Move";
-        System.out.println("Move mode activated. Drag shapes to move.");
-
-        drawingCanvas.setOnMousePressed(this::startMove);
-        drawingCanvas.setOnMouseDragged(this::performMove);
-        drawingCanvas.setOnMouseReleased(this::endMoveIfClickedOutside);
-    }
-
-    private void endMoveIfClickedOutside(MouseEvent event) {
-        // 빈 공간 클릭시 해제
-        if (!isPointInsideSelectedShapes(event.getX(), event.getY())) {
-            clearSelection();
-        }
-    }
-
-    private boolean isPointInsideSelectedShapes(double x, double y) {
-        for (ShapeRecord shape : selectedShapes) {
-            if (x >= shape.startX && x <= shape.endX && y >= shape.startY && y <= shape.endY) {
-                return true; // 선택된 도형 내부에 있음
-            }
-        }
-        return false; // 선택된 도형 외부
-    }
-
-    private void clearSelection() {
-        selectedShapes.clear(); // 선택된 도형 리스트 비우기
-        currentMode = null;     // 이동 모드 해제
-        redrawCanvas();         // 화면 다시 그리기 (점선 제거)
-    }
-
-    private void startMove(MouseEvent event) {
-        if (selectedShapes.isEmpty()) return;
-
-        // 드래그 시작점 저장
-        dragStartX = event.getX();
-        dragStartY = event.getY();
-
-    }
-
-    private void performMove(MouseEvent event) {
-        if (selectedShapes.isEmpty()) return;
-
-        // 드래그 이동량 계산
-        double deltaX = event.getX() - dragStartX;
-        double deltaY = event.getY() - dragStartY;
-
-        // 캔버스 경계 확인
-        for (ShapeRecord shape : selectedShapes) {
-            double newStartX = shape.startX + deltaX;
-            double newStartY = shape.startY + deltaY;
-            double newEndX = shape.endX + deltaX;
-            double newEndY = shape.endY + deltaY;
-
-            // 캔버스를 벗어나면 이동 중단
-            if (newStartX < 0 || newStartY < 0 || newEndX > drawingCanvas.getWidth() || newEndY > drawingCanvas.getHeight()) {
-                return;
-            }
-        }
-
-        // 경계 확인이 통과되면 모든 도형 이동
-        for (ShapeRecord shape : selectedShapes) {
-            shape.startX += deltaX;
-            shape.startY += deltaY;
-            shape.endX += deltaX;
-            shape.endY += deltaY;
-        }
-
-        // 드래그 시작점 업데이트
-        dragStartX = event.getX();
-        dragStartY = event.getY();
-
-        redrawCanvas(); // 화면 다시 그리기
-    }
-
-    @FXML
-    private void handleCopyButtonClick(ActionEvent event) {
-        if (selectedShapes.isEmpty()) {
-            System.out.println("No shapes selected to copy.");
-            return;
-        }
-
-        clipboard.clear();
-
-        // 기준 좌표 (선택된 도형들의 최소 x, y 좌표)
-        double minX = Double.MAX_VALUE;
-        double minY = Double.MAX_VALUE;
-
-        for (ShapeRecord shape : selectedShapes) {
-            minX = Math.min(minX, shape.startX);
-            minY = Math.min(minY, shape.startY);
-        }
-
-        // 도형들의 상대 좌표를 계산하여 클립보드에 저장
-        for (ShapeRecord shape : selectedShapes) {
-            double relativeStartX = shape.startX - minX;
-            double relativeStartY = shape.startY - minY;
-            double relativeEndX = shape.endX - minX;
-            double relativeEndY = shape.endY - minY;
-
-            clipboard.add(new ShapeRecord(shape.type, relativeStartX, relativeStartY, relativeEndX, relativeEndY, shape.color));
-        }
-
-        System.out.println(clipboard.size() + " shape(s) copied to clipboard with relative positions.");
-    }
-
-
-    @FXML
-    private void handlePasteButtonClick(ActionEvent event) {
-        if (clipboard.isEmpty()) {
-            System.out.println("Clipboard is empty. Nothing to paste.");
-            return;
-        }
-
-        resetMode();
-        currentMode = "Paste";
-        System.out.println("Paste mode activated. Click on the canvas to place shapes.");
-
-        drawingCanvas.setOnMousePressed(this::performPaste);
-    }
-
-    private void performPaste(MouseEvent event) {
-        double pasteStartX = event.getX();
-        double pasteStartY = event.getY();
-
-        List<ShapeRecord> newShapes = new ArrayList<>();
-
-        // 클립보드의 도형들을 클릭한 위치에 상대적으로 붙여넣기
-        for (ShapeRecord shape : clipboard) {
-            double newStartX = pasteStartX + shape.startX;
-            double newStartY = pasteStartY + shape.startY;
-            double newEndX = pasteStartX + shape.endX;
-            double newEndY = pasteStartY + shape.endY;
-
-            // 캔버스 경계를 벗어나지 않도록 보정
-            if (newStartX < 0) {
-                double diff = -newStartX;
-                newStartX += diff;
-                newEndX += diff;
-            }
-            if (newStartY < 0) {
-                double diff = -newStartY;
-                newStartY += diff;
-                newEndY += diff;
-            }
-            if (newEndX > drawingCanvas.getWidth()) {
-                double diff = newEndX - drawingCanvas.getWidth();
-                newStartX -= diff;
-                newEndX -= diff;
-            }
-            if (newEndY > drawingCanvas.getHeight()) {
-                double diff = newEndY - drawingCanvas.getHeight();
-                newStartY -= diff;
-                newEndY -= diff;
-            }
-
-            // 새로운 도형 생성 및 추가
-            newShapes.add(new ShapeRecord(shape.type, newStartX, newStartY, newEndX, newEndY, shape.color));
-        }
-
-        shapes.addAll(newShapes);
-        redrawCanvas();
-        System.out.println(newShapes.size() + " shape(s) pasted at (" + pasteStartX + ", " + pasteStartY + ").");
-    }
-
-
-
-    private int nextGroupId = 1; // 그룹 ID 생성용 변수
-
-    @FXML
-    private void handleGroupButtonClick(MouseEvent event) {
-        // 그룹 메뉴 표시
-        ContextMenu groupMenu = new ContextMenu();
-
-        MenuItem groupItem = new MenuItem("Grouping");
-        groupItem.setOnAction(e -> groupSelectedShapes());
-
-        MenuItem ungroupItem = new MenuItem("Ungrouping");
-        ungroupItem.setOnAction(e -> ungroupSelectedShapes());
-
-        groupMenu.getItems().addAll(groupItem, ungroupItem);
-        groupMenu.show(groupButton, event.getScreenX(), event.getScreenY());
-    }
-
-    @FXML
-    private void groupSelectedShapes() {
-        if (selectedShapes.isEmpty()) {
-            System.out.println("No shapes selected to group.");
-            return;
-        }
-
-        // 새로운 그룹 ID 부여
-        int groupId = nextGroupId++;
-        for (ShapeRecord shape : selectedShapes) {
-            shape.groupId = groupId;
-        }
-
-        System.out.println("Grouped " + selectedShapes.size() + " shapes into group " + groupId);
-        redrawCanvas();
-    }
-
-    @FXML
-    private void ungroupSelectedShapes() {
-        if (selectedShapes.isEmpty()) {
-            System.out.println("No shapes selected to ungroup.");
-            return;
-        }
-
-        // 선택된 도형들의 그룹 해제
-        for (ShapeRecord shape : selectedShapes) {
-            shape.groupId = -1; // 그룹 해제
-        }
-
-        System.out.println("Ungrouped selected shapes.");
-        redrawCanvas();
-    }
-
-}
-
 
