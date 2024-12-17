@@ -52,8 +52,8 @@
                         <MenuItem mnemonicParsing="false" text="Save" onAction="#handleSave"/>
                         <SeparatorMenuItem mnemonicParsing="false" />
                         <MenuItem mnemonicParsing="false" text="Save As" onAction="#handleSaveAs"/>
-                        <SeparatorMenuItem mnemonicParsing="false" onAction="#handleLoad"/>
-                        <MenuItem mnemonicParsing="false" text="File Load" />
+                        <SeparatorMenuItem mnemonicParsing="false" />
+                        <MenuItem mnemonicParsing="false" text="File Load" onAction="#handleLoad"/>
                      </items>
                   </Menu>
                </menus>
