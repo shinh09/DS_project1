@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="0b4a2c83-9ffb-49e0-b089-1e625257ee94" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/Controller/DrawingEditorController$ShapeRecord.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/java/com/example/ds_drawing_editor/Controller/DrawingEditorController.java" beforeDir="false" afterPath="$PROJECT_DIR$/main/java/DS/teamproject/DrawingEditor/Controller/DrawingEditorController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/java/com/example/ds_drawing_editor/DrawingEditorApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/main/java/DS/teamproject/DrawingEditor/DrawingEditorApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/drawingeditor2.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/drawingeditor2.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/CS_HW2_23102031_HwangYuYoung.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/CS_HW2_23102031_HwangYuYoung.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/Vector (1).png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/Vector (1).png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/Vector.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/Vector.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/akar-icons_arrow.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/akar-icons_arrow.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/circle.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/circle.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/grommet-icons_paint.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/grommet-icons_paint.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/ic_outline-shape-line.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/ic_outline-shape-line.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/iconamoon_move-fill.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/iconamoon_move-fill.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/mdi_group.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/mdi_group.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/pepicons-pop_line-x.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/pepicons-pop_line-x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/ph_rectangle-bold.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/ph_rectangle-bold.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/radix-icons_hand.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/radix-icons_hand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/reset.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/reset.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/tdesign_paste-filled.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/tdesign_paste-filled.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main/resources/com/example/ds_drawing_editor/icons/tdesign_paste.png" beforeDir="false" afterPath="$PROJECT_DIR$/main/resources/DS/teamproject/DrawingEditor/icons/tdesign_paste.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/Controller/DrawingEditorController$ShapeRecord.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/Controller/DrawingEditorController.class" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/Controller/DrawingEditorController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/DrawingEditorApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/DrawingEditorApplication.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/drawingeditor2.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/drawingeditor2.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/CS_HW2_23102031_HwangYuYoung.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/CS_HW2_23102031_HwangYuYoung.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/Vector (1).png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/Vector (1).png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/Vector.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/Vector.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/akar-icons_arrow.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/akar-icons_arrow.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/circle.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/circle.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/grommet-icons_paint.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/grommet-icons_paint.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/ic_outline-shape-line.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/ic_outline-shape-line.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/iconamoon_move-fill.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/iconamoon_move-fill.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/mdi_group.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/mdi_group.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/pepicons-pop_line-x.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/pepicons-pop_line-x.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/ph_rectangle-bold.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/ph_rectangle-bold.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/radix-icons_hand.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/radix-icons_hand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/reset.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/reset.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/tdesign_paste-filled.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/tdesign_paste-filled.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/com/example/ds_drawing_editor/icons/tdesign_paste.png" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/DS/teamproject/DrawingEditor/icons/tdesign_paste.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../target/classes/module-info.class" beforeDir="false" afterPath="$PROJECT_DIR$/../target/classes/module-info.class" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="2qG6QjRaIyfcOL4445wFYoLUlP4" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/lee/workspace/git_clone/DS_project1/DS_Drawing_Editor/src",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.145" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.145" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0b4a2c83-9ffb-49e0-b089-1e625257ee94" name="Changes" comment="" />
+      <created>1734276550475</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1734276550475</updated>
+      <workItem from="1734276552079" duration="5000" />
+    </task>
+    <servers />
+  </component>
+</project>

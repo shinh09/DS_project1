@@ -1,4 +1,4 @@
-module com.example.ds_drawing_editor {
+module DS.teamproject.DrawingEditor {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
